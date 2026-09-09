@@ -1,5 +1,6 @@
 globalThis.MzansiUMLAImport = (() => {
   const RECORDS_KEY = 'umla-imported-records-v0.1';
+  const ALLOWED_PROGRAMMES = new Set(['mzansi-boilermaker', 'autotech-companion']);
 
   function validate(record) {
     const errors = [];
@@ -8,7 +9,7 @@ globalThis.MzansiUMLAImport = (() => {
     ['eventId','learnerId','programmeId','qualificationId','moduleId','activityId','activityType','eventType','outcome','occurredAt','createdAt','syncStatus'].forEach(key => {
       if (!record?.[key]) errors.push(`${key} is required.`);
     });
-    if (record?.programmeId !== 'mzansi-boilermaker') errors.push('Phase 0.1B accepts only mzansi-boilermaker.');
+    if (record?.programmeId && !ALLOWED_PROGRAMMES.has(record.programmeId)) errors.push('Programme is not registered for Phase 0.1C.');
     if (record?.syncStatus !== 'LOCAL_ONLY') errors.push('Pilot record must remain LOCAL_ONLY.');
     if (!record?.score || typeof record.score !== 'object') errors.push('score object is required.');
     return { valid: errors.length === 0, errors };
