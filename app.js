@@ -147,10 +147,16 @@ function recordsByProgramme(records){
   return grouped;
 }
 
+async function learnerRecords(){
+  const learner=await MzansiLMSCore.getOrCreateLearner();
+  const records=await MzansiUMLAImport.list();
+  return records.filter(record=>MzansiLMSCore.recordBelongsToLearner(record,learner));
+}
+
 async function renderProgress(){
   const box=document.getElementById('progressSummary');
-  const records=await MzansiUMLAImport.list();
-  if(!records.length){box.innerHTML='<p class="helper">No imported UMLA record yet.</p>';return;}
+  const records=await learnerRecords();
+  if(!records.length){box.innerHTML='<p class="helper">No linked UMLA learning record yet.</p>';return;}
   const grouped=recordsByProgramme(records);
   const cards=[];
   for(const [programmeId,programmeRecords] of grouped){
@@ -167,7 +173,7 @@ async function renderProgress(){
 
 async function renderReports(){
   const box=document.getElementById('reportSummary');
-  const records=await MzansiUMLAImport.list();
+  const records=await learnerRecords();
   const enrolments=await MzansiLMSCore.listEnrolments();
   const programmeIds=new Set([...records.map(record=>record.programmeId),...enrolments.map(item=>item.programmeId)]);
   if(!programmeIds.size){box.innerHTML='<p class="helper">No reportable learning records or enrolments yet.</p>';return;}
@@ -192,7 +198,8 @@ async function renderProfile(){
   const box=document.getElementById('profileSummary');
   const learner=await MzansiLMSCore.getOrCreateLearner();
   const enrolments=await MzansiLMSCore.listEnrolments();
-  box.innerHTML=`<p><strong>Local learner ID</strong></p><p class="helper">${learner.learnerId}</p><p><strong>${enrolments.length}</strong> local enrolment${enrolments.length===1?'':'s'}</p><p class="helper">Identity and enrolments remain on this device. No cloud account is required.</p>`;
+  const linked=Array.isArray(learner.sourceIdentities)?learner.sourceIdentities.length:0;
+  box.innerHTML=`<p><strong>Local learner ID</strong></p><p class="helper">${learner.learnerId}</p><p><strong>${enrolments.length}</strong> local enrolment${enrolments.length===1?'':'s'} • <strong>${linked}</strong> linked programme identit${linked===1?'y':'ies'}</p><p class="helper">Identity links, enrolments and learning records remain on this device. No cloud account is required.</p>`;
 }
 
 async function importRecords(records){
@@ -206,16 +213,33 @@ async function importRecords(records){
     return false;
   }
 
+  const sourceLearners=new Map();
+  for(const record of records){
+    const existing=sourceLearners.get(record.programmeId);
+    if(existing&&existing!==record.learnerId){
+      result.innerHTML='<strong>IMPORT BLOCKED</strong><p>A single learner import cannot contain different learner identities for the same programme.</p>';
+      return false;
+    }
+    sourceLearners.set(record.programmeId,record.learnerId);
+  }
+
+  try{
+    for(const [programmeId,sourceLearnerId] of sourceLearners){
+      await MzansiLMSCore.linkSourceLearner(programmeId,sourceLearnerId);
+      await MzansiLMSCore.enrol(programmeId);
+    }
+  }catch(error){
+    result.innerHTML=`<strong>IMPORT BLOCKED</strong><p>${error.message}</p>`;
+    return false;
+  }
+
   let importedCount=0;
   let duplicateCount=0;
-  const programmes=new Set();
   for(const record of records){
     const imported=await MzansiUMLAImport.importRecord(record);
     if(imported.duplicate) duplicateCount++;
     else importedCount++;
-    programmes.add(record.programmeId);
   }
-  for(const programmeId of programmes) await MzansiLMSCore.enrol(programmeId);
   await Promise.all([renderProgress(),renderReports(),renderProfile()]);
   result.innerHTML=`<strong>IMPORT PASS</strong><p>${importedCount} imported • ${duplicateCount} already present • ${records.length} validated.</p>`;
   return true;
@@ -247,7 +271,7 @@ document.getElementById('loadFixtureBtn').addEventListener('click',async()=>{
     const payload=await response.json();
     if(payload?.handoffVersion!=='UMLA-HANDOFF-0.1'||!Array.isArray(payload.events)||payload.events.length!==7) throw new Error('Fixture invalid');
     const passed=await importRecords(payload.events);
-    if(passed) result.innerHTML='<strong>7-EVENT FIXTURE PASS</strong><p>All seven events validated. Progress and reports recalculated locally.</p>';
+    if(passed) result.innerHTML='<strong>7-EVENT FIXTURE PASS</strong><p>All seven events validated, linked to the local learner, and used to recalculate progress and reports.</p>';
   }catch(error){result.textContent='Seven-event Boilermaker fixture could not be loaded.';}
 });
 
