@@ -16,6 +16,7 @@
     "qualificationId": "SAQA-118733",
     "status": "pilot",
     "pwaUrl": "https://autotech-companion.netlify.app",
-    "schemaVersion": "UMLA-LR-0.1"
+    "schemaVersion": "UMLA-LR-0.1",
+    "programmeConfig": "./programme-configs/autotech-companion.json"
   }
 ]
