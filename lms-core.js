@@ -99,11 +99,38 @@ globalThis.MzansiLMSCore = (() => {
 
   async function getOrCreateLearner() {
     let learner = await MzansiHubStore.get(LEARNER_KEY);
-    if (learner?.learnerId) return learner;
+    if (learner?.learnerId) {
+      if (!Array.isArray(learner.sourceIdentities)) learner.sourceIdentities = [];
+      return learner;
+    }
     const now = new Date().toISOString();
-    learner = { schemaVersion: 'UMLA-LEARNER-0.1', learnerId: createId(), createdAt: now, updatedAt: now, identityMode: 'LOCAL_DEVICE' };
+    learner = { schemaVersion: 'UMLA-LEARNER-0.1', learnerId: createId(), createdAt: now, updatedAt: now, identityMode: 'LOCAL_DEVICE', sourceIdentities: [] };
     await MzansiHubStore.set(LEARNER_KEY, learner);
     return learner;
+  }
+
+  async function linkSourceLearner(programmeId, sourceLearnerId) {
+    if (!registry.has(programmeId)) throw new Error('Programme is not registered.');
+    if (!text(sourceLearnerId)) throw new Error('Source learnerId is required.');
+    const learner = await getOrCreateLearner();
+    const identities = Array.isArray(learner.sourceIdentities) ? learner.sourceIdentities : [];
+    const existingForProgramme = identities.find(item => item.programmeId === programmeId);
+    if (existingForProgramme && existingForProgramme.sourceLearnerId !== sourceLearnerId) {
+      throw new Error('A different source learner is already linked to this programme on this device.');
+    }
+    if (!existingForProgramme) {
+      identities.push({ programmeId, sourceLearnerId, linkedAt: new Date().toISOString() });
+      learner.sourceIdentities = identities;
+      learner.updatedAt = new Date().toISOString();
+      await MzansiHubStore.set(LEARNER_KEY, learner);
+    }
+    return learner;
+  }
+
+  function recordBelongsToLearner(record, learner) {
+    if (!record || !learner) return false;
+    if (record.learnerId === learner.learnerId) return true;
+    return (learner.sourceIdentities || []).some(item => item.programmeId === record.programmeId && item.sourceLearnerId === record.learnerId);
   }
 
   async function enrol(programmeId) {
@@ -147,5 +174,5 @@ globalThis.MzansiLMSCore = (() => {
     };
   }
 
-  return { validateRegistryEntry, validateProgrammeConfig, configure, getOrCreateLearner, enrol, listEnrolments, report };
+  return { validateRegistryEntry, validateProgrammeConfig, configure, getOrCreateLearner, linkSourceLearner, recordBelongsToLearner, enrol, listEnrolments, report };
 })();
