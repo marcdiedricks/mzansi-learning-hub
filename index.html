@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#1f2937">
-<meta name="description" content="Mzansi Learning Hub — lightweight offline-first LMS shell.">
+<meta name="description" content="Mzansi Learning Hub — robust offline-first learning management system.">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icons/mzansi-learning-hub-192.png">
 <link rel="stylesheet" href="./styles.css">
@@ -17,20 +17,21 @@
 </header>
 <main class="app-main">
 <section class="hero-card">
-  <p class="eyebrow">PHASE 0.1D</p>
+  <p class="eyebrow">OFFLINE-FIRST LMS</p>
   <h2>Your learning programmes in one place.</h2>
-  <p>The Hub uses a registry-driven local UMLA handoff without a cloud backend.</p>
+  <p>Programmes connect through validated definitions and UMLA learning records. Core use remains local and cloud-independent.</p>
 </section>
 <nav class="tab-nav" aria-label="Learning Hub sections">
   <button class="tab active" data-view="homeView">Home</button>
   <button class="tab" data-view="learningView">My Learning</button>
   <button class="tab" data-view="programmesView">Programmes</button>
   <button class="tab" data-view="progressView">Progress</button>
+  <button class="tab" data-view="reportsView">Reports</button>
   <button class="tab" data-view="profileView">Profile</button>
 </nav>
 <section id="homeView" class="view active">
   <section class="panel">
-    <p class="eyebrow">MULTI-PWA LEARNING HUB</p>
+    <p class="eyebrow">PROGRAMME-AGNOSTIC LMS CORE</p>
     <h2 id="homeProgrammeCount">Connected programmes</h2>
     <p id="homeProgrammeNames" class="helper">Loading programme registry…</p>
     <button class="primary-btn" data-open="learningView">Open My Learning</button>
@@ -48,33 +49,34 @@
 </section>
 <section id="progressView" class="view">
   <p class="eyebrow">PROGRESS</p>
-  <h2>Learning record</h2>
-  <section class="panel">
-    <div id="progressSummary"><p class="helper">No imported UMLA record yet.</p></div>
-  </section>
+  <h2>Verified pathway progress</h2>
+  <section class="panel"><div id="progressSummary"><p class="helper">No imported UMLA record yet.</p></div></section>
   <section class="panel">
     <p class="eyebrow">LOCAL HANDOFF</p>
-    <h3>Import UMLA record</h3>
-    <p class="helper">Choose a UMLA-LR-0.1 JSON file exported from a learning PWA. The record stays on this device.</p>
+    <h3>Import UMLA records</h3>
+    <p class="helper">Choose a UMLA-LR-0.1 record or UMLA-HANDOFF-0.1 package. Records are validated before being stored locally.</p>
     <input id="umlaFileInput" type="file" accept="application/json,.json">
-    <button id="importUmlaBtn" class="primary-btn" type="button">Import learning record</button>
+    <button id="importUmlaBtn" class="primary-btn" type="button">Import learning records</button>
     <button id="loadFixtureBtn" class="secondary-btn" type="button">Load 7-event pathway test</button>
     <div id="importResult" class="result-card" aria-live="polite"></div>
   </section>
 </section>
+<section id="reportsView" class="view">
+  <p class="eyebrow">REPORTS</p>
+  <h2>Derived learning reports</h2>
+  <section class="panel"><div id="reportSummary"><p class="helper">No reportable learning records yet.</p></div></section>
+</section>
 <section id="profileView" class="view">
   <p class="eyebrow">PROFILE</p>
   <h2>Local-first learner profile</h2>
-  <section class="panel">
-    <p>Central learner accounts are intentionally not active in Phase 0.1D.</p>
-    <p class="helper">Identity, enrolment and cloud sync are later controlled phases.</p>
-  </section>
+  <section class="panel"><div id="profileSummary"><p class="helper">Loading local learner identity…</p></div></section>
 </section>
 </main>
-<footer class="app-footer"><span>UMLA-LR-0.1</span><span>Registry-driven local handoff</span></footer>
+<footer class="app-footer"><span>UMLA-LR-0.1</span><span>Offline-first • validated • derived reporting</span></footer>
 <script src="./hub-storage.js"></script>
 <script src="./umla-import.js"></script>
 <script src="./progress-engine.js"></script>
+<script src="./lms-core.js"></script>
 <script src="./app.js"></script>
 </body>
 </html>
