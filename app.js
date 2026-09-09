@@ -182,9 +182,30 @@ document.getElementById('importUmlaBtn').addEventListener('click',async()=>{
 document.getElementById('loadFixtureBtn').addEventListener('click',async()=>{
   const result=document.getElementById('importResult');
   try{
-    const response=await fetch('./fixtures/boilermaker-km04-l03-umla.json');
-    await importRecordObject(await response.json());
-  }catch(error){result.textContent='Pilot fixture could not be loaded.';}
+    const response=await fetch('./fixtures/boilermaker-seven-activity-umla-handoff.json');
+    if(!response.ok) throw new Error('Fixture unavailable');
+    const payload=await response.json();
+    if(payload?.handoffVersion!=='UMLA-HANDOFF-0.1'||!Array.isArray(payload.events)||payload.events.length!==7){
+      throw new Error('Seven-event UMLA fixture is invalid');
+    }
+
+    let importedCount=0;
+    let duplicateCount=0;
+    for(const record of payload.events){
+      const imported=await MzansiUMLAImport.importRecord(record);
+      if(!imported.valid){
+        result.innerHTML=`<strong>FIXTURE BLOCKED</strong><p>${record.activityId||'Unknown activity'}: ${imported.errors.join(' ')}</p>`;
+        return;
+      }
+      if(imported.duplicate) duplicateCount++;
+      else importedCount++;
+    }
+
+    await renderProgress();
+    result.innerHTML=`<strong>7-EVENT FIXTURE PASS</strong><p>${importedCount} imported • ${duplicateCount} already present. Boilermaker pathway progress recalculated locally.</p>`;
+  }catch(error){
+    result.textContent='Seven-event Boilermaker fixture could not be loaded.';
+  }
 });
 
 if('serviceWorker'in navigator){addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(console.error));}
