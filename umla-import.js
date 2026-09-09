@@ -1,6 +1,14 @@
 globalThis.MzansiUMLAImport = (() => {
   const RECORDS_KEY = 'umla-imported-records-v0.1';
-  const ALLOWED_PROGRAMMES = new Set(['mzansi-boilermaker', 'autotech-companion']);
+  const registry = new Map();
+
+  function configure(programmes) {
+    registry.clear();
+    if (!Array.isArray(programmes)) return;
+    programmes.forEach(programme => {
+      if (programme?.programmeId) registry.set(programme.programmeId, programme);
+    });
+  }
 
   function validate(record) {
     const errors = [];
@@ -9,7 +17,18 @@ globalThis.MzansiUMLAImport = (() => {
     ['eventId','learnerId','programmeId','qualificationId','moduleId','activityId','activityType','eventType','outcome','occurredAt','createdAt','syncStatus'].forEach(key => {
       if (!record?.[key]) errors.push(`${key} is required.`);
     });
-    if (record?.programmeId && !ALLOWED_PROGRAMMES.has(record.programmeId)) errors.push('Programme is not registered for Phase 0.1C.');
+
+    if (!registry.size) {
+      errors.push('Programme registry is not loaded.');
+    } else if (record?.programmeId) {
+      const programme = registry.get(record.programmeId);
+      if (!programme) {
+        errors.push('Programme is not registered in Mzansi Learning Hub.');
+      } else if (record.qualificationId !== programme.qualificationId) {
+        errors.push('qualificationId does not match the registered programme.');
+      }
+    }
+
     if (record?.syncStatus !== 'LOCAL_ONLY') errors.push('Pilot record must remain LOCAL_ONLY.');
     if (!record?.score || typeof record.score !== 'object') errors.push('score object is required.');
     return { valid: errors.length === 0, errors };
@@ -36,5 +55,5 @@ globalThis.MzansiUMLAImport = (() => {
     return records.length ? records[records.length - 1] : null;
   }
 
-  return { validate, importRecord, list, latest };
+  return { configure, validate, importRecord, list, latest };
 })();
