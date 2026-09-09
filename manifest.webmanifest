@@ -1,0 +1,9 @@
+{
+  "name": "Mzansi Learning Hub",
+  "short_name": "Learning Hub",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f3f4f6",
+  "theme_color": "#1f2937",
+  "description": "Offline-first LMS control layer for Mzansi learning PWAs."
+}
