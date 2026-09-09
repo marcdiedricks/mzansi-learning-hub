@@ -4,6 +4,7 @@ const networkStatus=document.getElementById('networkStatus');
 const homeProgrammeCount=document.getElementById('homeProgrammeCount');
 const homeProgrammeNames=document.getElementById('homeProgrammeNames');
 const programmeRegistry=new Map();
+const programmeConfigs=new Map();
 
 function openView(id){
   views.forEach(view=>view.classList.toggle('active',view.id===id));
@@ -36,9 +37,22 @@ function programmeCard(programme,learning=false){
     <p class="eyebrow">${programme.category.toUpperCase()} • ${programme.status.toUpperCase()}</p>
     <h3>${programme.name}</h3>
     <p class="programme-meta">${programme.qualificationId} • ${programme.schemaVersion}</p>
-    <p class="helper">${learning?'Progress is shown from imported UMLA records.':'Learning remains inside the specialist PWA.'}</p>
+    <p class="helper">${learning?'Progress is derived from imported UMLA records where a programme pathway is defined.':'Learning remains inside the specialist PWA.'}</p>
     <a class="programme-link" href="${programme.pwaUrl}" target="_blank" rel="noopener noreferrer">Open ${programme.name}</a>
   </article>`;
+}
+
+async function loadProgrammeConfig(programme){
+  if(!programme.programmeConfig) return;
+  try{
+    const response=await fetch(programme.programmeConfig);
+    if(!response.ok) throw new Error('Programme config unavailable');
+    const config=await response.json();
+    if(config.programmeId!==programme.programmeId) throw new Error('Programme config ID mismatch');
+    programmeConfigs.set(programme.programmeId,config);
+  }catch(error){
+    console.warn(`Programme config unavailable for ${programme.programmeId}`,error);
+  }
 }
 
 async function loadProgrammes(){
@@ -48,7 +62,9 @@ async function loadProgrammes(){
     const response=await fetch('./programmes.json');
     const data=await response.json();
     programmeRegistry.clear();
+    programmeConfigs.clear();
     data.forEach(item=>programmeRegistry.set(item.programmeId,item));
+    await Promise.all(data.map(loadProgrammeConfig));
     MzansiUMLAImport.configure(data);
     renderHomeProgrammeSummary(data);
     learning.innerHTML=data.map(item=>programmeCard(item,true)).join('');
@@ -56,6 +72,7 @@ async function loadProgrammes(){
     return true;
   }catch(error){
     programmeRegistry.clear();
+    programmeConfigs.clear();
     MzansiUMLAImport.configure([]);
     renderHomeProgrammeSummary([]);
     const fallback='<article class="programme-card"><h3>Learning programmes</h3><p>Programme registry unavailable. The offline shell is still active.</p></article>';
@@ -69,12 +86,39 @@ function scoreText(score){
   return `${score.raw ?? '—'}/${score.max ?? '—'}${score.percent!=null?` (${score.percent}%)`:''}`;
 }
 
-function progressCard(record){
+function legacyProgressCard(record){
   return `<div class="programme-card">
     <div class="progress-row"><span>${programmeName(record.programmeId)}</span><strong>${scoreText(record.score)}</strong></div>
-    <div class="progress-track"><div class="progress-fill" style="width:${record.score?.percent||0}%"></div></div>
     <p><strong>${record.moduleId} • ${record.activityId}</strong></p>
+    <p class="helper">Latest imported assessment result. Programme pathway progress is not yet configured for this product.</p>
     <p class="helper">Outcome: ${record.outcome} • Sync: ${record.syncStatus} • Imported locally</p>
+  </div>`;
+}
+
+function moduleSummary(module){
+  if(module.status==='PARTIAL_DEFINITION'){
+    return `${module.moduleId}: pathway definition incomplete${module.knownRequired?` • ${module.knownSatisfied}/${module.knownRequired} currently mapped activities satisfied`:''}`;
+  }
+  return `${module.moduleId}: ${module.status.replaceAll('_',' ')}${module.percent!=null?` • ${module.percent}%`:''}`;
+}
+
+function pathwayProgressCard(programmeId,progress){
+  const knowledgeStage=progress.stages.find(stage=>stage.stageId==='knowledge');
+  const visibleModules=(knowledgeStage?.modules||[]).filter(module=>module.knownSatisfied>0||module.moduleId==='KM-01'||module.moduleId==='KM-04');
+  const next=progress.nextRequired;
+  const nextText=next?.blockedReason==='MODULE_DEFINITION_INCOMPLETE'
+    ? `Next pathway step is blocked at ${next.moduleId} until its programme definition is complete.`
+    : next?.activityId
+      ? `Next required activity: ${next.moduleId} • ${next.activityId}`
+      : 'No next required activity is currently defined.';
+  const headline=progress.percent==null?'Programme progress withheld':`${progress.percent}% programme progress`;
+  const bar=progress.percent==null?'':`<div class="progress-track"><div class="progress-fill" style="width:${progress.percent}%"></div></div>`;
+  return `<div class="programme-card">
+    <div class="progress-row"><span>${programmeName(programmeId)}</span><strong>${headline}</strong></div>
+    ${bar}
+    ${visibleModules.map(module=>`<p><strong>${moduleSummary(module)}</strong></p>`).join('')}
+    <p class="helper">${nextText}</p>
+    ${progress.warning?`<p class="helper">${progress.warning}</p>`:''}
   </div>`;
 }
 
@@ -82,9 +126,24 @@ async function renderProgress(){
   const box=document.getElementById('progressSummary');
   const records=await MzansiUMLAImport.list();
   if(!records.length){box.innerHTML='<p class="helper">No imported UMLA record yet.</p>';return;}
-  const latestByProgramme=new Map();
-  records.forEach(record=>latestByProgramme.set(record.programmeId,record));
-  box.innerHTML=[...latestByProgramme.values()].map(progressCard).join('');
+
+  const recordsByProgramme=new Map();
+  records.forEach(record=>{
+    if(!recordsByProgramme.has(record.programmeId)) recordsByProgramme.set(record.programmeId,[]);
+    recordsByProgramme.get(record.programmeId).push(record);
+  });
+
+  const cards=[];
+  for(const [programmeId,programmeRecords] of recordsByProgramme){
+    const config=programmeConfigs.get(programmeId);
+    if(config&&globalThis.MzansiProgressEngine){
+      cards.push(pathwayProgressCard(programmeId,MzansiProgressEngine.calculate(config,programmeRecords)));
+      continue;
+    }
+    const latest=[...programmeRecords].sort((a,b)=>String(a.occurredAt||'').localeCompare(String(b.occurredAt||''))).at(-1);
+    cards.push(legacyProgressCard(latest));
+  }
+  box.innerHTML=cards.join('');
 }
 
 async function importRecordObject(record){
