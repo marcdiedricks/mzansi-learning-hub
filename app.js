@@ -1,6 +1,8 @@
 const views=[...document.querySelectorAll('.view')];
 const tabs=[...document.querySelectorAll('.tab')];
 const networkStatus=document.getElementById('networkStatus');
+const homeProgrammeCount=document.getElementById('homeProgrammeCount');
+const homeProgrammeNames=document.getElementById('homeProgrammeNames');
 const programmeRegistry=new Map();
 
 function openView(id){
@@ -23,6 +25,12 @@ function programmeName(programmeId){
   return programmeRegistry.get(programmeId)?.name||programmeId;
 }
 
+function renderHomeProgrammeSummary(data){
+  const count=data.length;
+  homeProgrammeCount.textContent=`${count} connected programme${count===1?'':'s'}`;
+  homeProgrammeNames.textContent=count?data.map(item=>item.name).join(' + '):'No programmes registered.';
+}
+
 function programmeCard(programme,learning=false){
   return `<article class="programme-card">
     <p class="eyebrow">${programme.category.toUpperCase()} • ${programme.status.toUpperCase()}</p>
@@ -42,12 +50,14 @@ async function loadProgrammes(){
     programmeRegistry.clear();
     data.forEach(item=>programmeRegistry.set(item.programmeId,item));
     MzansiUMLAImport.configure(data);
+    renderHomeProgrammeSummary(data);
     learning.innerHTML=data.map(item=>programmeCard(item,true)).join('');
     programmes.innerHTML=data.map(item=>programmeCard(item,false)).join('');
     return true;
   }catch(error){
     programmeRegistry.clear();
     MzansiUMLAImport.configure([]);
+    renderHomeProgrammeSummary([]);
     const fallback='<article class="programme-card"><h3>Learning programmes</h3><p>Programme registry unavailable. The offline shell is still active.</p></article>';
     learning.innerHTML=fallback;programmes.innerHTML=fallback;
     return false;

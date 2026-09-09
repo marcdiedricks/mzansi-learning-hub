@@ -16,9 +16,9 @@
 </header>
 <main class="app-main">
 <section class="hero-card">
-  <p class="eyebrow">PHASE 0.1B</p>
+  <p class="eyebrow">PHASE 0.1D</p>
   <h2>Your learning programmes in one place.</h2>
-  <p>The Hub now accepts a local UMLA learning record without a cloud backend.</p>
+  <p>The Hub uses a registry-driven local UMLA handoff without a cloud backend.</p>
 </section>
 <nav class="tab-nav" aria-label="Learning Hub sections">
   <button class="tab active" data-view="homeView">Home</button>
@@ -29,15 +29,15 @@
 </nav>
 <section id="homeView" class="view active">
   <section class="panel">
-    <p class="eyebrow">CURRENT PILOT</p>
-    <h2>Mzansi Boilermaker</h2>
-    <p>First controlled LMS integration using UMLA Learning Record v0.1.</p>
+    <p class="eyebrow">MULTI-PWA LEARNING HUB</p>
+    <h2 id="homeProgrammeCount">Connected programmes</h2>
+    <p id="homeProgrammeNames" class="helper">Loading programme registry…</p>
     <button class="primary-btn" data-open="learningView">Open My Learning</button>
   </section>
 </section>
 <section id="learningView" class="view">
   <p class="eyebrow">MY LEARNING</p>
-  <h2>Active programme</h2>
+  <h2>Active programmes</h2>
   <div id="learningCards" class="card-grid"></div>
 </section>
 <section id="programmesView" class="view">
@@ -65,12 +65,12 @@
   <p class="eyebrow">PROFILE</p>
   <h2>Local-first learner profile</h2>
   <section class="panel">
-    <p>Central learner accounts are intentionally not active in Phase 0.1B.</p>
+    <p>Central learner accounts are intentionally not active in Phase 0.1D.</p>
     <p class="helper">Identity, enrolment and cloud sync are later controlled phases.</p>
   </section>
 </section>
 </main>
-<footer class="app-footer"><span>UMLA-LR-0.1</span><span>Local handoff pilot</span></footer>
+<footer class="app-footer"><span>UMLA-LR-0.1</span><span>Registry-driven local handoff</span></footer>
 <script src="./hub-storage.js"></script>
 <script src="./umla-import.js"></script>
 <script src="./app.js"></script>
