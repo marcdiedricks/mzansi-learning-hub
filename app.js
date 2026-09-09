@@ -36,49 +36,64 @@ function programmeCard(programme,learning=false){
   return `<article class="programme-card">
     <p class="eyebrow">${programme.category.toUpperCase()} • ${programme.status.toUpperCase()}</p>
     <h3>${programme.name}</h3>
-    <p class="programme-meta">${programme.qualificationId} • ${programme.schemaVersion}</p>
-    <p class="helper">${learning?'Progress is derived from imported UMLA records where a programme pathway is defined.':'Learning remains inside the specialist PWA.'}</p>
+    <p class="programme-meta">${programme.qualificationId||'No qualification ID'} • ${programme.schemaVersion}</p>
+    <p class="helper">${programmeConfigs.has(programme.programmeId)?'Validated pathway definition connected.':'Learning records accepted; programme-level progress withheld until a validated pathway is connected.'}</p>
+    ${learning?`<button class="secondary-btn" type="button" data-enrol="${programme.programmeId}">Enrol locally</button>`:''}
     <a class="programme-link" href="${programme.pwaUrl}" target="_blank" rel="noopener noreferrer">Open ${programme.name}</a>
   </article>`;
 }
 
 async function loadProgrammeConfig(programme){
   if(!programme.programmeConfig) return;
-  try{
-    const response=await fetch(programme.programmeConfig);
-    if(!response.ok) throw new Error('Programme config unavailable');
-    const config=await response.json();
-    if(config.programmeId!==programme.programmeId) throw new Error('Programme config ID mismatch');
-    programmeConfigs.set(programme.programmeId,config);
-  }catch(error){
-    console.warn(`Programme config unavailable for ${programme.programmeId}`,error);
-  }
+  const response=await fetch(programme.programmeConfig);
+  if(!response.ok) throw new Error(`Programme config unavailable for ${programme.programmeId}`);
+  const config=await response.json();
+  const check=MzansiLMSCore.validateProgrammeConfig(config,programme);
+  if(!check.valid) throw new Error(`${programme.programmeId}: ${check.errors.join(' ')}`);
+  programmeConfigs.set(programme.programmeId,config);
+}
+
+function bindEnrolButtons(){
+  document.querySelectorAll('[data-enrol]').forEach(button=>button.addEventListener('click',async()=>{
+    try{
+      await MzansiLMSCore.enrol(button.dataset.enrol);
+      button.textContent='Enrolled locally';
+      button.disabled=true;
+      await renderProfile();
+      await renderReports();
+    }catch(error){
+      button.textContent='Enrolment blocked';
+    }
+  }));
 }
 
 async function loadProgrammes(){
   const learning=document.getElementById('learningCards');
   const programmes=document.getElementById('programmeCards');
-  try{
-    const response=await fetch('./programmes.json');
-    const data=await response.json();
-    programmeRegistry.clear();
-    programmeConfigs.clear();
-    data.forEach(item=>programmeRegistry.set(item.programmeId,item));
-    await Promise.all(data.map(loadProgrammeConfig));
-    MzansiUMLAImport.configure(data);
-    renderHomeProgrammeSummary(data);
-    learning.innerHTML=data.map(item=>programmeCard(item,true)).join('');
-    programmes.innerHTML=data.map(item=>programmeCard(item,false)).join('');
-    return true;
-  }catch(error){
-    programmeRegistry.clear();
-    programmeConfigs.clear();
-    MzansiUMLAImport.configure([]);
-    renderHomeProgrammeSummary([]);
-    const fallback='<article class="programme-card"><h3>Learning programmes</h3><p>Programme registry unavailable. The offline shell is still active.</p></article>';
-    learning.innerHTML=fallback;programmes.innerHTML=fallback;
-    return false;
-  }
+  const response=await fetch('./programmes.json');
+  if(!response.ok) throw new Error('Programme registry unavailable');
+  const data=await response.json();
+  programmeRegistry.clear();
+  programmeConfigs.clear();
+
+  const registryErrors=[];
+  data.forEach(item=>{
+    const check=MzansiLMSCore.validateRegistryEntry(item);
+    if(!check.valid) registryErrors.push(...check.errors.map(error=>`${item?.programmeId||'programme'}: ${error}`));
+    else if(programmeRegistry.has(item.programmeId)) registryErrors.push(`${item.programmeId}: duplicate programmeId.`);
+    else programmeRegistry.set(item.programmeId,item);
+  });
+  if(registryErrors.length) throw new Error(registryErrors.join(' '));
+
+  await Promise.all(data.map(loadProgrammeConfig));
+  const coreCheck=MzansiLMSCore.configure(data,programmeConfigs);
+  if(!coreCheck.valid) throw new Error(coreCheck.errors.join(' '));
+  MzansiUMLAImport.configure(data);
+  renderHomeProgrammeSummary(data);
+  learning.innerHTML=data.map(item=>programmeCard(item,true)).join('');
+  programmes.innerHTML=data.map(item=>programmeCard(item,false)).join('');
+  bindEnrolButtons();
+  return data;
 }
 
 function scoreText(score){
@@ -88,10 +103,9 @@ function scoreText(score){
 
 function legacyProgressCard(record){
   return `<div class="programme-card">
-    <div class="progress-row"><span>${programmeName(record.programmeId)}</span><strong>${scoreText(record.score)}</strong></div>
+    <div class="progress-row"><span>${programmeName(record.programmeId)}</span><strong>Programme progress withheld</strong></div>
     <p><strong>${record.moduleId} • ${record.activityId}</strong></p>
-    <p class="helper">Latest imported assessment result. Programme pathway progress is not yet configured for this product.</p>
-    <p class="helper">Outcome: ${record.outcome} • Sync: ${record.syncStatus} • Imported locally</p>
+    <p class="helper">Latest assessment: ${scoreText(record.score)} • ${record.outcome}. A quiz score is not treated as whole-programme progress.</p>
   </div>`;
 }
 
@@ -103,8 +117,10 @@ function moduleSummary(module){
 }
 
 function pathwayProgressCard(programmeId,progress){
-  const knowledgeStage=progress.stages.find(stage=>stage.stageId==='knowledge');
-  const visibleModules=(knowledgeStage?.modules||[]).filter(module=>module.knownSatisfied>0||module.moduleId==='KM-01'||module.moduleId==='KM-04');
+  const visibleModules=[];
+  progress.stages.forEach(stage=>stage.modules.forEach(module=>{
+    if(module.knownSatisfied>0||module.complete) visibleModules.push(module);
+  }));
   const next=progress.nextRequired;
   const nextText=next?.blockedReason==='MODULE_DEFINITION_INCOMPLETE'
     ? `Next pathway step is blocked at ${next.moduleId} until its programme definition is complete.`
@@ -116,56 +132,101 @@ function pathwayProgressCard(programmeId,progress){
   return `<div class="programme-card">
     <div class="progress-row"><span>${programmeName(programmeId)}</span><strong>${headline}</strong></div>
     ${bar}
-    ${visibleModules.map(module=>`<p><strong>${moduleSummary(module)}</strong></p>`).join('')}
+    ${visibleModules.length?visibleModules.map(module=>`<p><strong>${moduleSummary(module)}</strong></p>`).join(''):'<p class="helper">No required activity has been satisfied yet.</p>'}
     <p class="helper">${nextText}</p>
     ${progress.warning?`<p class="helper">${progress.warning}</p>`:''}
   </div>`;
+}
+
+function recordsByProgramme(records){
+  const grouped=new Map();
+  records.forEach(record=>{
+    if(!grouped.has(record.programmeId)) grouped.set(record.programmeId,[]);
+    grouped.get(record.programmeId).push(record);
+  });
+  return grouped;
 }
 
 async function renderProgress(){
   const box=document.getElementById('progressSummary');
   const records=await MzansiUMLAImport.list();
   if(!records.length){box.innerHTML='<p class="helper">No imported UMLA record yet.</p>';return;}
-
-  const recordsByProgramme=new Map();
-  records.forEach(record=>{
-    if(!recordsByProgramme.has(record.programmeId)) recordsByProgramme.set(record.programmeId,[]);
-    recordsByProgramme.get(record.programmeId).push(record);
-  });
-
+  const grouped=recordsByProgramme(records);
   const cards=[];
-  for(const [programmeId,programmeRecords] of recordsByProgramme){
+  for(const [programmeId,programmeRecords] of grouped){
     const config=programmeConfigs.get(programmeId);
-    if(config&&globalThis.MzansiProgressEngine){
+    if(config){
       cards.push(pathwayProgressCard(programmeId,MzansiProgressEngine.calculate(config,programmeRecords)));
       continue;
     }
     const sorted=[...programmeRecords].sort((a,b)=>String(a.occurredAt||'').localeCompare(String(b.occurredAt||'')));
-    const latest=sorted[sorted.length-1];
-    cards.push(legacyProgressCard(latest));
+    cards.push(legacyProgressCard(sorted[sorted.length-1]));
   }
   box.innerHTML=cards.join('');
 }
 
-async function importRecordObject(record){
-  const result=document.getElementById('importResult');
-  const imported=await MzansiUMLAImport.importRecord(record);
-  if(!imported.valid){
-    result.innerHTML=`<strong>IMPORT BLOCKED</strong><p>${imported.errors.join(' ')}</p>`;
-    return;
-  }
-  result.innerHTML=`<strong>${imported.duplicate?'ALREADY IMPORTED':'IMPORT PASS'}</strong><p>${programmeName(record.programmeId)} • ${record.moduleId} • ${record.activityId} • ${scoreText(record.score)}</p>`;
-  await renderProgress();
+async function renderReports(){
+  const box=document.getElementById('reportSummary');
+  const records=await MzansiUMLAImport.list();
+  const enrolments=await MzansiLMSCore.listEnrolments();
+  const programmeIds=new Set([...records.map(record=>record.programmeId),...enrolments.map(item=>item.programmeId)]);
+  if(!programmeIds.size){box.innerHTML='<p class="helper">No reportable learning records or enrolments yet.</p>';return;}
+  const cards=[];
+  programmeIds.forEach(programmeId=>{
+    if(!programmeRegistry.has(programmeId)) return;
+    const report=MzansiLMSCore.report(programmeId,records);
+    const status=report.percent==null?report.pathwayStatus:`${report.percent}% • ${report.pathwayStatus}`;
+    const next=report.nextRequired?.activityId?`${report.nextRequired.moduleId} • ${report.nextRequired.activityId}`:report.nextRequired?.blockedReason?`${report.nextRequired.moduleId} • definition incomplete`:'Not yet defined';
+    cards.push(`<article class="programme-card">
+      <div class="progress-row"><span>${report.programmeName}</span><strong>${status.replace(/_/g,' ')}</strong></div>
+      <p>Learning records: <strong>${report.recordCount}</strong></p>
+      <p>Last activity: <strong>${report.lastActivityId||'None yet'}</strong></p>
+      <p>Next required: <strong>${next}</strong></p>
+      ${report.warning?`<p class="helper">${report.warning}</p>`:''}
+    </article>`);
+  });
+  box.innerHTML=cards.join('')||'<p class="helper">No reportable programmes yet.</p>';
 }
 
-function extractUmlaEvent(payload){
-  if(payload?.handoffVersion==='UMLA-HANDOFF-0.1'){
-    if(!Array.isArray(payload.events)||!payload.events.length){
-      throw new Error('UMLA handoff contains no events');
-    }
-    return payload.events[0];
+async function renderProfile(){
+  const box=document.getElementById('profileSummary');
+  const learner=await MzansiLMSCore.getOrCreateLearner();
+  const enrolments=await MzansiLMSCore.listEnrolments();
+  box.innerHTML=`<p><strong>Local learner ID</strong></p><p class="helper">${learner.learnerId}</p><p><strong>${enrolments.length}</strong> local enrolment${enrolments.length===1?'':'s'}</p><p class="helper">Identity and enrolments remain on this device. No cloud account is required.</p>`;
+}
+
+async function importRecords(records){
+  const result=document.getElementById('importResult');
+  if(!Array.isArray(records)||!records.length) throw new Error('No UMLA events found.');
+
+  const checks=records.map(record=>({record,check:MzansiUMLAImport.validate(record)}));
+  const blocked=checks.find(item=>!item.check.valid);
+  if(blocked){
+    result.innerHTML=`<strong>IMPORT BLOCKED</strong><p>${blocked.record?.activityId||'Unknown activity'}: ${blocked.check.errors.join(' ')}</p>`;
+    return false;
   }
-  return payload;
+
+  let importedCount=0;
+  let duplicateCount=0;
+  const programmes=new Set();
+  for(const record of records){
+    const imported=await MzansiUMLAImport.importRecord(record);
+    if(imported.duplicate) duplicateCount++;
+    else importedCount++;
+    programmes.add(record.programmeId);
+  }
+  for(const programmeId of programmes) await MzansiLMSCore.enrol(programmeId);
+  await Promise.all([renderProgress(),renderReports(),renderProfile()]);
+  result.innerHTML=`<strong>IMPORT PASS</strong><p>${importedCount} imported • ${duplicateCount} already present • ${records.length} validated.</p>`;
+  return true;
+}
+
+function extractUmlaEvents(payload){
+  if(payload?.handoffVersion==='UMLA-HANDOFF-0.1'){
+    if(!Array.isArray(payload.events)||!payload.events.length) throw new Error('UMLA handoff contains no events.');
+    return payload.events;
+  }
+  return [payload];
 }
 
 document.getElementById('importUmlaBtn').addEventListener('click',async()=>{
@@ -173,10 +234,9 @@ document.getElementById('importUmlaBtn').addEventListener('click',async()=>{
   const result=document.getElementById('importResult');
   if(!input.files?.length){result.textContent='Choose a UMLA JSON file first.';return;}
   try{
-    const text=await input.files[0].text();
-    const payload=JSON.parse(text);
-    await importRecordObject(extractUmlaEvent(payload));
-  }catch(error){result.textContent='Import failed. Check that the selected file contains a valid UMLA learning record.';}
+    const payload=JSON.parse(await input.files[0].text());
+    await importRecords(extractUmlaEvents(payload));
+  }catch(error){result.textContent='Import failed. Check that the selected file contains valid UMLA learning records.';}
 });
 
 document.getElementById('loadFixtureBtn').addEventListener('click',async()=>{
@@ -185,28 +245,27 @@ document.getElementById('loadFixtureBtn').addEventListener('click',async()=>{
     const response=await fetch('./fixtures/boilermaker-seven-activity-umla-handoff.json');
     if(!response.ok) throw new Error('Fixture unavailable');
     const payload=await response.json();
-    if(payload?.handoffVersion!=='UMLA-HANDOFF-0.1'||!Array.isArray(payload.events)||payload.events.length!==7){
-      throw new Error('Seven-event UMLA fixture is invalid');
-    }
-
-    let importedCount=0;
-    let duplicateCount=0;
-    for(const record of payload.events){
-      const imported=await MzansiUMLAImport.importRecord(record);
-      if(!imported.valid){
-        result.innerHTML=`<strong>FIXTURE BLOCKED</strong><p>${record.activityId||'Unknown activity'}: ${imported.errors.join(' ')}</p>`;
-        return;
-      }
-      if(imported.duplicate) duplicateCount++;
-      else importedCount++;
-    }
-
-    await renderProgress();
-    result.innerHTML=`<strong>7-EVENT FIXTURE PASS</strong><p>${importedCount} imported • ${duplicateCount} already present. Boilermaker pathway progress recalculated locally.</p>`;
-  }catch(error){
-    result.textContent='Seven-event Boilermaker fixture could not be loaded.';
-  }
+    if(payload?.handoffVersion!=='UMLA-HANDOFF-0.1'||!Array.isArray(payload.events)||payload.events.length!==7) throw new Error('Fixture invalid');
+    const passed=await importRecords(payload.events);
+    if(passed) result.innerHTML='<strong>7-EVENT FIXTURE PASS</strong><p>All seven events validated. Progress and reports recalculated locally.</p>';
+  }catch(error){result.textContent='Seven-event Boilermaker fixture could not be loaded.';}
 });
 
+async function init(){
+  try{
+    await loadProgrammes();
+    await MzansiLMSCore.getOrCreateLearner();
+    await Promise.all([renderProgress(),renderReports(),renderProfile()]);
+  }catch(error){
+    programmeRegistry.clear();
+    programmeConfigs.clear();
+    MzansiUMLAImport.configure([]);
+    renderHomeProgrammeSummary([]);
+    const message='<article class="programme-card"><h3>LMS configuration blocked</h3><p class="helper">A programme or pathway definition failed validation. The LMS did not guess or activate invalid data.</p></article>';
+    document.getElementById('learningCards').innerHTML=message;
+    document.getElementById('programmeCards').innerHTML=message;
+  }
+}
+
 if('serviceWorker'in navigator){addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(console.error));}
-loadProgrammes().then(renderProgress);
+init();
