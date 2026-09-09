@@ -1,6 +1,10 @@
 const views=[...document.querySelectorAll('.view')];
 const tabs=[...document.querySelectorAll('.tab')];
 const networkStatus=document.getElementById('networkStatus');
+const programmeNames={
+  'mzansi-boilermaker':'Mzansi Boilermaker',
+  'autotech-companion':'AutoTech Companion'
+};
 
 function openView(id){
   views.forEach(view=>view.classList.toggle('active',view.id===id));
@@ -37,7 +41,7 @@ async function loadProgrammes(){
     learning.innerHTML=data.map(item=>programmeCard(item,true)).join('');
     programmes.innerHTML=data.map(item=>programmeCard(item,false)).join('');
   }catch(error){
-    const fallback='<article class="programme-card"><h3>Mzansi Boilermaker</h3><p>Programme registry unavailable. The offline shell is still active.</p></article>';
+    const fallback='<article class="programme-card"><h3>Learning programmes</h3><p>Programme registry unavailable. The offline shell is still active.</p></article>';
     learning.innerHTML=fallback;programmes.innerHTML=fallback;
   }
 }
@@ -47,14 +51,23 @@ function scoreText(score){
   return `${score.raw ?? '—'}/${score.max ?? '—'}${score.percent!=null?` (${score.percent}%)`:''}`;
 }
 
+function progressCard(record){
+  const name=programmeNames[record.programmeId]||record.programmeId;
+  return `<div class="programme-card">
+    <div class="progress-row"><span>${name}</span><strong>${scoreText(record.score)}</strong></div>
+    <div class="progress-track"><div class="progress-fill" style="width:${record.score?.percent||0}%"></div></div>
+    <p><strong>${record.moduleId} • ${record.activityId}</strong></p>
+    <p class="helper">Outcome: ${record.outcome} • Sync: ${record.syncStatus} • Imported locally</p>
+  </div>`;
+}
+
 async function renderProgress(){
   const box=document.getElementById('progressSummary');
-  const latest=await MzansiUMLAImport.latest();
-  if(!latest){box.innerHTML='<p class="helper">No imported UMLA record yet.</p>';return;}
-  box.innerHTML=`<div class="progress-row"><span>Mzansi Boilermaker</span><strong>${scoreText(latest.score)}</strong></div>
-    <div class="progress-track"><div class="progress-fill" style="width:${latest.score?.percent||0}%"></div></div>
-    <p><strong>${latest.moduleId} • ${latest.activityId}</strong></p>
-    <p class="helper">Outcome: ${latest.outcome} • Sync: ${latest.syncStatus} • Imported locally</p>`;
+  const records=await MzansiUMLAImport.list();
+  if(!records.length){box.innerHTML='<p class="helper">No imported UMLA record yet.</p>';return;}
+  const latestByProgramme=new Map();
+  records.forEach(record=>latestByProgramme.set(record.programmeId,record));
+  box.innerHTML=[...latestByProgramme.values()].map(progressCard).join('');
 }
 
 async function importRecordObject(record){
@@ -64,7 +77,7 @@ async function importRecordObject(record){
     result.innerHTML=`<strong>IMPORT BLOCKED</strong><p>${imported.errors.join(' ')}</p>`;
     return;
   }
-  result.innerHTML=`<strong>${imported.duplicate?'ALREADY IMPORTED':'IMPORT PASS'}</strong><p>${record.moduleId} • ${record.activityId} • ${scoreText(record.score)}</p>`;
+  result.innerHTML=`<strong>${imported.duplicate?'ALREADY IMPORTED':'IMPORT PASS'}</strong><p>${programmeNames[record.programmeId]||record.programmeId} • ${record.moduleId} • ${record.activityId} • ${scoreText(record.score)}</p>`;
   await renderProgress();
 }
 
