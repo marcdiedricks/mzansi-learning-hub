@@ -13,5 +13,20 @@
       "outcome": "passed",
       "scoreText": "4/4 (100%)"
     }
+  },
+  {
+    "programmeId": "autotech-companion",
+    "name": "AutoTech Companion",
+    "category": "Artisan",
+    "qualificationId": "SAQA-118733",
+    "status": "pilot",
+    "pwaUrl": "https://autotech-companion.netlify.app",
+    "schemaVersion": "UMLA-LR-0.1",
+    "pilotProgress": {
+      "moduleId": "KM-02",
+      "activityId": "AUTOTECH-U02-KC01",
+      "outcome": "pending",
+      "scoreText": "Awaiting import"
+    }
   }
 ]
