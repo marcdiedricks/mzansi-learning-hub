@@ -68,14 +68,25 @@ async function importRecordObject(record){
   await renderProgress();
 }
 
+function extractUmlaEvent(payload){
+  if(payload?.handoffVersion==='UMLA-HANDOFF-0.1'){
+    if(!Array.isArray(payload.events)||!payload.events.length){
+      throw new Error('UMLA handoff contains no events');
+    }
+    return payload.events[0];
+  }
+  return payload;
+}
+
 document.getElementById('importUmlaBtn').addEventListener('click',async()=>{
   const input=document.getElementById('umlaFileInput');
   const result=document.getElementById('importResult');
   if(!input.files?.length){result.textContent='Choose a UMLA JSON file first.';return;}
   try{
     const text=await input.files[0].text();
-    await importRecordObject(JSON.parse(text));
-  }catch(error){result.textContent='Import failed. Check that the selected file contains valid JSON.';}
+    const payload=JSON.parse(text);
+    await importRecordObject(extractUmlaEvent(payload));
+  }catch(error){result.textContent='Import failed. Check that the selected file contains a valid UMLA learning record.';}
 });
 
 document.getElementById('loadFixtureBtn').addEventListener('click',async()=>{
