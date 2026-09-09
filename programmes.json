@@ -7,12 +7,7 @@
     "status": "pilot",
     "pwaUrl": "https://mzansi-boilermaker.netlify.app",
     "schemaVersion": "UMLA-LR-0.1",
-    "pilotProgress": {
-      "moduleId": "KM-04",
-      "activityId": "KM-04-L03",
-      "outcome": "passed",
-      "scoreText": "4/4 (100%)"
-    }
+    "programmeConfig": "./programme-configs/mzansi-boilermaker.json"
   },
   {
     "programmeId": "autotech-companion",
