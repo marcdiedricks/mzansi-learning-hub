@@ -99,7 +99,7 @@ function moduleSummary(module){
   if(module.status==='PARTIAL_DEFINITION'){
     return `${module.moduleId}: pathway definition incomplete${module.knownRequired?` • ${module.knownSatisfied}/${module.knownRequired} currently mapped activities satisfied`:''}`;
   }
-  return `${module.moduleId}: ${module.status.replaceAll('_',' ')}${module.percent!=null?` • ${module.percent}%`:''}`;
+  return `${module.moduleId}: ${module.status.replace(/_/g,' ')}${module.percent!=null?` • ${module.percent}%`:''}`;
 }
 
 function pathwayProgressCard(programmeId,progress){
@@ -140,7 +140,8 @@ async function renderProgress(){
       cards.push(pathwayProgressCard(programmeId,MzansiProgressEngine.calculate(config,programmeRecords)));
       continue;
     }
-    const latest=[...programmeRecords].sort((a,b)=>String(a.occurredAt||'').localeCompare(String(b.occurredAt||''))).at(-1);
+    const sorted=[...programmeRecords].sort((a,b)=>String(a.occurredAt||'').localeCompare(String(b.occurredAt||'')));
+    const latest=sorted[sorted.length-1];
     cards.push(legacyProgressCard(latest));
   }
   box.innerHTML=cards.join('');
