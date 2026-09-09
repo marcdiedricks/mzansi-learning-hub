@@ -1,10 +1,7 @@
 const views=[...document.querySelectorAll('.view')];
 const tabs=[...document.querySelectorAll('.tab')];
 const networkStatus=document.getElementById('networkStatus');
-const programmeNames={
-  'mzansi-boilermaker':'Mzansi Boilermaker',
-  'autotech-companion':'AutoTech Companion'
-};
+const programmeRegistry=new Map();
 
 function openView(id){
   views.forEach(view=>view.classList.toggle('active',view.id===id));
@@ -22,6 +19,10 @@ function updateNetwork(){
 }
 addEventListener('online',updateNetwork);addEventListener('offline',updateNetwork);updateNetwork();
 
+function programmeName(programmeId){
+  return programmeRegistry.get(programmeId)?.name||programmeId;
+}
+
 function programmeCard(programme,learning=false){
   return `<article class="programme-card">
     <p class="eyebrow">${programme.category.toUpperCase()} • ${programme.status.toUpperCase()}</p>
@@ -38,11 +39,18 @@ async function loadProgrammes(){
   try{
     const response=await fetch('./programmes.json');
     const data=await response.json();
+    programmeRegistry.clear();
+    data.forEach(item=>programmeRegistry.set(item.programmeId,item));
+    MzansiUMLAImport.configure(data);
     learning.innerHTML=data.map(item=>programmeCard(item,true)).join('');
     programmes.innerHTML=data.map(item=>programmeCard(item,false)).join('');
+    return true;
   }catch(error){
+    programmeRegistry.clear();
+    MzansiUMLAImport.configure([]);
     const fallback='<article class="programme-card"><h3>Learning programmes</h3><p>Programme registry unavailable. The offline shell is still active.</p></article>';
     learning.innerHTML=fallback;programmes.innerHTML=fallback;
+    return false;
   }
 }
 
@@ -52,9 +60,8 @@ function scoreText(score){
 }
 
 function progressCard(record){
-  const name=programmeNames[record.programmeId]||record.programmeId;
   return `<div class="programme-card">
-    <div class="progress-row"><span>${name}</span><strong>${scoreText(record.score)}</strong></div>
+    <div class="progress-row"><span>${programmeName(record.programmeId)}</span><strong>${scoreText(record.score)}</strong></div>
     <div class="progress-track"><div class="progress-fill" style="width:${record.score?.percent||0}%"></div></div>
     <p><strong>${record.moduleId} • ${record.activityId}</strong></p>
     <p class="helper">Outcome: ${record.outcome} • Sync: ${record.syncStatus} • Imported locally</p>
@@ -77,7 +84,7 @@ async function importRecordObject(record){
     result.innerHTML=`<strong>IMPORT BLOCKED</strong><p>${imported.errors.join(' ')}</p>`;
     return;
   }
-  result.innerHTML=`<strong>${imported.duplicate?'ALREADY IMPORTED':'IMPORT PASS'}</strong><p>${programmeNames[record.programmeId]||record.programmeId} • ${record.moduleId} • ${record.activityId} • ${scoreText(record.score)}</p>`;
+  result.innerHTML=`<strong>${imported.duplicate?'ALREADY IMPORTED':'IMPORT PASS'}</strong><p>${programmeName(record.programmeId)} • ${record.moduleId} • ${record.activityId} • ${scoreText(record.score)}</p>`;
   await renderProgress();
 }
 
@@ -111,4 +118,4 @@ document.getElementById('loadFixtureBtn').addEventListener('click',async()=>{
 });
 
 if('serviceWorker'in navigator){addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(console.error));}
-loadProgrammes();renderProgress();
+loadProgrammes().then(renderProgress);
