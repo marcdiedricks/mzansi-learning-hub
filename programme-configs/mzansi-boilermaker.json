@@ -16,7 +16,20 @@
       "order": 1,
       "credits": 162,
       "modules": [
-        { "moduleId": "KM-01", "moduleName": "Introduction to Boilermaker Trade", "order": 1, "credits": 9, "required": true, "definitionComplete": false, "activities": [] },
+        {
+          "moduleId": "KM-01",
+          "moduleName": "Introduction to Boilermaker Trade",
+          "order": 1,
+          "credits": 9,
+          "required": true,
+          "definitionComplete": true,
+          "activities": [
+            { "activityId": "KM-01-L01", "activityName": "The Boilermaker Trade, Learning Path, Rights and Responsibilities", "activityType": "knowledge-check", "required": true, "satisfiedBy": ["passed"] },
+            { "activityId": "KM-01-L02", "activityName": "Occupational Health, Safety and Environment Foundations", "activityType": "knowledge-check", "required": true, "satisfiedBy": ["passed"] },
+            { "activityId": "KM-01-L03", "activityName": "Quality Control and Quality Assurance Awareness", "activityType": "knowledge-check", "required": true, "satisfiedBy": ["passed"] },
+            { "activityId": "KM-01-L04", "activityName": "Fabrication Overview and Controlled Information", "activityType": "knowledge-check", "required": true, "satisfiedBy": ["passed"] }
+          ]
+        },
         { "moduleId": "KM-02", "moduleName": "Environmental Protection, Health and Safety", "order": 2, "credits": 6, "required": true, "definitionComplete": false, "activities": [] },
         { "moduleId": "KM-03", "moduleName": "Boilermaker Tools, Equipment, Machines and Materials", "order": 3, "credits": 10, "required": true, "definitionComplete": false, "activities": [] },
         {
@@ -27,7 +40,9 @@
           "required": true,
           "definitionComplete": false,
           "activities": [
-            { "activityId": "KM-04-L03", "activityType": "knowledge-check", "required": true, "satisfiedBy": ["passed"] }
+            { "activityId": "KM-04-L01", "activityName": "Basic Templates", "activityType": "knowledge-check", "required": true, "satisfiedBy": ["passed"] },
+            { "activityId": "KM-04-L02", "activityName": "Pipe and Plate Templates", "activityType": "knowledge-check", "required": true, "satisfiedBy": ["passed"] },
+            { "activityId": "KM-04-L03", "activityName": "Templates for Complex Components and Structures", "activityType": "knowledge-check", "required": true, "satisfiedBy": ["passed"] }
           ]
         },
         { "moduleId": "KM-05", "moduleName": "Assembling and Joining", "order": 5, "credits": 28, "required": true, "definitionComplete": false, "activities": [] },
