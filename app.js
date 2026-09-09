@@ -19,13 +19,11 @@ function updateNetwork(){
 addEventListener('online',updateNetwork);addEventListener('offline',updateNetwork);updateNetwork();
 
 function programmeCard(programme,learning=false){
-  const progress=programme.pilotProgress;
   return `<article class="programme-card">
     <p class="eyebrow">${programme.category.toUpperCase()} • ${programme.status.toUpperCase()}</p>
     <h3>${programme.name}</h3>
     <p class="programme-meta">${programme.qualificationId} • ${programme.schemaVersion}</p>
-    ${progress?`<p><strong>${progress.moduleId} Lesson 3</strong> • ${progress.scoreText}</p>`:''}
-    <p class="helper">${learning?'This is the current controlled LMS pilot record.':'Learning remains inside the specialist PWA.'}</p>
+    <p class="helper">${learning?'Progress is shown from imported UMLA records.':'Learning remains inside the specialist PWA.'}</p>
     <a class="programme-link" href="${programme.pwaUrl}" target="_blank" rel="noopener noreferrer">Open ${programme.name}</a>
   </article>`;
 }
@@ -44,5 +42,49 @@ async function loadProgrammes(){
   }
 }
 
+function scoreText(score){
+  if(!score||typeof score!=='object') return '—';
+  return `${score.raw ?? '—'}/${score.max ?? '—'}${score.percent!=null?` (${score.percent}%)`:''}`;
+}
+
+async function renderProgress(){
+  const box=document.getElementById('progressSummary');
+  const latest=await MzansiUMLAImport.latest();
+  if(!latest){box.innerHTML='<p class="helper">No imported UMLA record yet.</p>';return;}
+  box.innerHTML=`<div class="progress-row"><span>Mzansi Boilermaker</span><strong>${scoreText(latest.score)}</strong></div>
+    <div class="progress-track"><div class="progress-fill" style="width:${latest.score?.percent||0}%"></div></div>
+    <p><strong>${latest.moduleId} • ${latest.activityId}</strong></p>
+    <p class="helper">Outcome: ${latest.outcome} • Sync: ${latest.syncStatus} • Imported locally</p>`;
+}
+
+async function importRecordObject(record){
+  const result=document.getElementById('importResult');
+  const imported=await MzansiUMLAImport.importRecord(record);
+  if(!imported.valid){
+    result.innerHTML=`<strong>IMPORT BLOCKED</strong><p>${imported.errors.join(' ')}</p>`;
+    return;
+  }
+  result.innerHTML=`<strong>${imported.duplicate?'ALREADY IMPORTED':'IMPORT PASS'}</strong><p>${record.moduleId} • ${record.activityId} • ${scoreText(record.score)}</p>`;
+  await renderProgress();
+}
+
+document.getElementById('importUmlaBtn').addEventListener('click',async()=>{
+  const input=document.getElementById('umlaFileInput');
+  const result=document.getElementById('importResult');
+  if(!input.files?.length){result.textContent='Choose a UMLA JSON file first.';return;}
+  try{
+    const text=await input.files[0].text();
+    await importRecordObject(JSON.parse(text));
+  }catch(error){result.textContent='Import failed. Check that the selected file contains valid JSON.';}
+});
+
+document.getElementById('loadFixtureBtn').addEventListener('click',async()=>{
+  const result=document.getElementById('importResult');
+  try{
+    const response=await fetch('./fixtures/boilermaker-km04-l03-umla.json');
+    await importRecordObject(await response.json());
+  }catch(error){result.textContent='Pilot fixture could not be loaded.';}
+});
+
 if('serviceWorker'in navigator){addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(console.error));}
-loadProgrammes();
+loadProgrammes();renderProgress();
