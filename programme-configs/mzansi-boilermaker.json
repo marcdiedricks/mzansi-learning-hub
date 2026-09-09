@@ -1,0 +1,81 @@
+{
+  "schemaVersion": "UMLA-PROGRAMME-0.1",
+  "programmeId": "mzansi-boilermaker",
+  "programmeName": "Boilermaker",
+  "programmeType": "artisan",
+  "qualificationId": "SAQA-123381",
+  "curriculumCode": "651302-000-01-00",
+  "nqfLevel": 4,
+  "credits": 540,
+  "definitionStatus": "PARTIAL",
+  "progressRule": "REQUIRED_ACTIVITIES_SATISFIED",
+  "stages": [
+    {
+      "stageId": "knowledge",
+      "stageName": "Knowledge Modules",
+      "order": 1,
+      "credits": 162,
+      "modules": [
+        { "moduleId": "KM-01", "moduleName": "Introduction to Boilermaker Trade", "order": 1, "credits": 9, "required": true, "definitionComplete": false, "activities": [] },
+        { "moduleId": "KM-02", "moduleName": "Environmental Protection, Health and Safety", "order": 2, "credits": 6, "required": true, "definitionComplete": false, "activities": [] },
+        { "moduleId": "KM-03", "moduleName": "Boilermaker Tools, Equipment, Machines and Materials", "order": 3, "credits": 10, "required": true, "definitionComplete": false, "activities": [] },
+        {
+          "moduleId": "KM-04",
+          "moduleName": "Fabrication and Pipework",
+          "order": 4,
+          "credits": 28,
+          "required": true,
+          "definitionComplete": false,
+          "activities": [
+            { "activityId": "KM-04-L03", "activityType": "knowledge-check", "required": true, "satisfiedBy": ["passed"] }
+          ]
+        },
+        { "moduleId": "KM-05", "moduleName": "Assembling and Joining", "order": 5, "credits": 28, "required": true, "definitionComplete": false, "activities": [] },
+        { "moduleId": "KM-06", "moduleName": "Cutting and Welding", "order": 6, "credits": 28, "required": true, "definitionComplete": false, "activities": [] },
+        { "moduleId": "KM-07", "moduleName": "Boilermaker's Drawings", "order": 7, "credits": 12, "required": true, "definitionComplete": false, "activities": [] },
+        { "moduleId": "KM-08", "moduleName": "Basic Principles of Environmental Awareness and Ethics", "order": 8, "credits": 2, "required": true, "definitionComplete": false, "activities": [] },
+        { "moduleId": "KM-09", "moduleName": "Emotional Intelligence and Active Learning", "order": 9, "credits": 3, "required": true, "definitionComplete": false, "activities": [] },
+        { "moduleId": "KM-10", "moduleName": "Basics of Computers and Computing Systems", "order": 10, "credits": 3, "required": true, "definitionComplete": false, "activities": [] },
+        { "moduleId": "KM-11", "moduleName": "Workplace Fundamentals and Workplace Safety", "order": 11, "credits": 6, "required": true, "definitionComplete": false, "activities": [] },
+        { "moduleId": "KM-12", "moduleName": "Workplace Relationships and Performance", "order": 12, "credits": 6, "required": true, "definitionComplete": false, "activities": [] },
+        { "moduleId": "KM-13", "moduleName": "Decision Making", "order": 13, "credits": 6, "required": true, "definitionComplete": false, "activities": [] },
+        { "moduleId": "KM-14", "moduleName": "Basic Slinging and Lifting, and Load Securing Operations", "order": 14, "credits": 15, "required": true, "definitionComplete": false, "activities": [] }
+      ]
+    },
+    {
+      "stageId": "practical",
+      "stageName": "Practical Skill Modules",
+      "order": 2,
+      "credits": 183,
+      "modules": [
+        { "moduleId": "PM-01", "moduleName": "Visualise Structures and Components and Develop Templates", "order": 1, "credits": 32, "required": true, "definitionComplete": false, "activities": [] },
+        { "moduleId": "PM-02", "moduleName": "Maintain and Use Tools, Equipment and Machinery", "order": 2, "credits": 20, "required": true, "definitionComplete": false, "activities": [] },
+        { "moduleId": "PM-03", "moduleName": "Cut and Weld Components Required for Fabrication of a Specific Task", "order": 3, "credits": 32, "required": true, "definitionComplete": false, "activities": [] },
+        { "moduleId": "PM-04", "moduleName": "Manipulate and Fabricate Profiles and Metal Sections Using Heating and Cold Bending Processes", "order": 4, "credits": 44, "required": true, "definitionComplete": false, "activities": [] },
+        { "moduleId": "PM-05", "moduleName": "Erect, Assemble and Repair Metal Structures", "order": 5, "credits": 32, "required": true, "definitionComplete": false, "activities": [] },
+        { "moduleId": "PM-06", "moduleName": "Work Safely and Respond to Emergencies", "order": 6, "credits": 4, "required": true, "definitionComplete": false, "activities": [] },
+        { "moduleId": "PM-07", "moduleName": "Apply Safety Standards and Housekeeping Practices", "order": 7, "credits": 4, "required": true, "definitionComplete": false, "activities": [] },
+        { "moduleId": "PM-08", "moduleName": "Liaise and Communicate with Others", "order": 8, "credits": 2, "required": true, "definitionComplete": false, "activities": [] },
+        { "moduleId": "PM-09", "moduleName": "Sling, Lift and Secure Loads for Transportation", "order": 9, "credits": 13, "required": true, "definitionComplete": false, "activities": [] }
+      ]
+    },
+    {
+      "stageId": "work-experience",
+      "stageName": "Work Experience Modules",
+      "order": 3,
+      "credits": 195,
+      "modules": [
+        { "moduleId": "WM-01", "moduleName": "Pattern and Template Development Processes", "order": 1, "credits": 35, "required": true, "definitionComplete": false, "activities": [] },
+        { "moduleId": "WM-02", "moduleName": "Tools, Equipment and Machinery Maintenance and Operation Processes", "order": 2, "credits": 30, "required": true, "definitionComplete": false, "activities": [] },
+        { "moduleId": "WM-03", "moduleName": "Workshop or On-Site Cutting and Welding Processes", "order": 3, "credits": 45, "required": true, "definitionComplete": false, "activities": [] },
+        { "moduleId": "WM-04", "moduleName": "Fabrication, Assembling and Repairing of Metal Components and Structures", "order": 4, "credits": 45, "required": true, "definitionComplete": false, "activities": [] },
+        { "moduleId": "WM-05", "moduleName": "Assembling and Erecting Processes for Structures and Components", "order": 5, "credits": 40, "required": true, "definitionComplete": false, "activities": [] }
+      ]
+    }
+  ],
+  "completionBoundary": {
+    "programmeMaySupportReadiness": true,
+    "programmeMayDeclareOfficialQualification": false,
+    "programmeMayDeclareTradeTestResult": false
+  }
+}
