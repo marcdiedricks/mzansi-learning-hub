@@ -39,6 +39,7 @@ function renderHomeProgrammeSummary(data){
 function programmeCard(programme,learning=false){
   const recordsEnabled=programme.learningRecordsEnabled!==false;
   const recordLabel=recordsEnabled?(programme.schemaVersion||'UMLA-LR-0.1'):'Standalone only';
+  const activationLabel=programme.activationState?programme.activationState.replaceAll('_',' '):'ACTIVE';
   const integrationText=programmeConfigs.has(programme.programmeId)
     ?'Validated pathway definition connected.'
     :recordsEnabled
@@ -48,8 +49,11 @@ function programmeCard(programme,learning=false){
     <p class="eyebrow">${escapeHtml(programme.category).toUpperCase()} • ${escapeHtml(programme.status).toUpperCase()}</p>
     <h3>${escapeHtml(programme.name)}</h3>
     <p class="programme-meta">${escapeHtml(programme.qualificationId||'No qualification ID')} • ${escapeHtml(recordLabel)}</p>
+    <p class="activation-pill">${escapeHtml(activationLabel)}</p>
     <p class="helper">${escapeHtml(integrationText)}</p>
-    ${learning?`<button class="secondary-btn" type="button" data-enrol="${escapeHtml(programme.programmeId)}">Enrol locally</button>`:''}
+    ${learning?(programme.enrolmentEnabled===false
+      ?'<button class="secondary-btn" type="button" disabled>Enrolment locked</button>'
+      :`<button class="secondary-btn" type="button" data-enrol="${escapeHtml(programme.programmeId)}">Enrol locally</button>`):''}
     <a class="programme-link" href="${escapeHtml(programme.pwaUrl)}" target="_blank" rel="noopener noreferrer">Open ${escapeHtml(programme.name)}</a>
   </article>`;
 }
