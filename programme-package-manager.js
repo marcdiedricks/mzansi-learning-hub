@@ -76,6 +76,28 @@ globalThis.MzansiProgrammePackageManager = (() => {
     return {removed:true};
   }
 
+  async function updateRegistered(originalProgrammeId,pkg){
+    const check=validate(pkg);
+    if(!check.valid) return {updated:false,errors:check.errors};
+    if(pkg.programmeId!==originalProgrammeId){
+      return {updated:false,errors:['Programme ID is the permanent identity and cannot be changed during an update.']};
+    }
+    const items=await listRegistered();
+    const index=items.findIndex(item=>item.programmeId===originalProgrammeId);
+    if(index<0) return {updated:false,errors:['Registered package could not be found.']};
+    const existing=items[index];
+    items[index]={
+      ...pkg,
+      registration:{
+        approved:true,
+        approvedAt:existing.registration?.approvedAt||new Date().toISOString(),
+        updatedAt:new Date().toISOString()
+      }
+    };
+    await MzansiHubStore.set(REGISTERED_KEY,items);
+    return {updated:true,package:items[index]};
+  }
+
   async function register(pkg){
     const check=validate(pkg);
     if(!check.valid) return {registered:false,errors:check.errors};
@@ -95,7 +117,7 @@ globalThis.MzansiProgrammePackageManager = (() => {
     return {registered:true,package:approved};
   }
 
-  return {buildPackage,validate,saveDraft,loadDraft,listRegistered,toRegistryEntry,register,removeRegistered};
+  return {buildPackage,validate,saveDraft,loadDraft,listRegistered,toRegistryEntry,register,removeRegistered,updateRegistered};
 })();
 
 (function(){
@@ -109,13 +131,52 @@ globalThis.MzansiProgrammePackageManager = (() => {
     return String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   }
 
+  let editingProgrammeId=null;
+
+  function fillForm(pkg){
+    const set=(name,value)=>{const field=form.elements.namedItem(name);if(field) field.value=value??'';};
+    set('programmeName',pkg.programmeName);
+    set('programmeId',pkg.programmeId);
+    set('tradeOrField',pkg.tradeOrField);
+    set('category',pkg.category);
+    set('shortDescription',pkg.shortDescription);
+    set('qualificationId',pkg.qualification?.qualificationId);
+    set('nqfLevel',pkg.qualification?.nqfLevel);
+    set('launchUrl',pkg.pwa?.launchUrl);
+    set('status',pkg.status);
+    ['offlineCapable','installable','umlaCompatible'].forEach(name=>{const field=form.elements.namedItem(name);if(field) field.checked=Boolean(pkg.pwa?.[name]);});
+  }
+
+  function enterEditMode(pkg){
+    editingProgrammeId=pkg.programmeId;
+    fillForm(pkg);
+    const idField=form.elements.namedItem('programmeId');
+    if(idField) idField.disabled=true;
+    preview.innerHTML='<article class="programme-card"><p class="eyebrow">EDITING REGISTERED PACKAGE</p><h3>'+esc(pkg.programmeName)+'</h3><p class="helper">Update the fields above, then tap Validate and preview. Programme ID is locked to protect the package identity.</p><button id="cancelPackageEditBtn" class="secondary-btn" type="button">Cancel edit</button></article>';
+    document.getElementById('cancelPackageEditBtn').addEventListener('click',exitEditMode);
+    document.getElementById('packageView').scrollIntoView({behavior:'smooth',block:'start'});
+  }
+
+  function exitEditMode(){
+    editingProgrammeId=null;
+    const idField=form.elements.namedItem('programmeId');
+    if(idField) idField.disabled=false;
+    form.reset();
+    preview.innerHTML='<p class="helper">Complete the form to preview the standalone programme package.</p>';
+  }
+
   async function renderRegistered(){
     const items=await MzansiProgrammePackageManager.listRegistered();
     if(!items.length){
       registeredList.innerHTML='<p class="helper">No standalone PWAs have been registered locally yet.</p>';
       return;
     }
-    registeredList.innerHTML=items.map(pkg=>'<article class="package-manage-card" data-package-id="'+esc(pkg.programmeId)+'"><div><p class="eyebrow">'+esc(pkg.category).toUpperCase()+' • '+esc(pkg.status)+'</p><h4>'+esc(pkg.programmeName)+'</h4><p class="programme-meta">'+esc(pkg.tradeOrField)+(pkg.qualification?.qualificationId?' • '+esc(pkg.qualification.qualificationId):'')+'</p></div><div class="package-actions"><button class="secondary-btn" type="button" data-inspect-package="'+esc(pkg.programmeId)+'">View details</button><button class="danger-btn" type="button" data-remove-package="'+esc(pkg.programmeId)+'">Remove from Hub</button></div><div class="package-detail" id="detail-'+esc(pkg.programmeId)+'" hidden></div></article>').join('');
+    registeredList.innerHTML=items.map(pkg=>'<article class="package-manage-card" data-package-id="'+esc(pkg.programmeId)+'"><div><p class="eyebrow">'+esc(pkg.category).toUpperCase()+' • '+esc(pkg.status)+'</p><h4>'+esc(pkg.programmeName)+'</h4><p class="programme-meta">'+esc(pkg.tradeOrField)+(pkg.qualification?.qualificationId?' • '+esc(pkg.qualification.qualificationId):'')+'</p></div><div class="package-actions"><button class="secondary-btn" type="button" data-edit-package="'+esc(pkg.programmeId)+'">Edit package</button><button class="secondary-btn" type="button" data-inspect-package="'+esc(pkg.programmeId)+'">View details</button><button class="danger-btn" type="button" data-remove-package="'+esc(pkg.programmeId)+'">Remove from Hub</button></div><div class="package-detail" id="detail-'+esc(pkg.programmeId)+'" hidden></div></article>').join('');
+
+    registeredList.querySelectorAll('[data-edit-package]').forEach(button=>button.addEventListener('click',()=>{
+      const pkg=items.find(item=>item.programmeId===button.dataset.editPackage);
+      if(pkg) enterEditMode(pkg);
+    }));
 
     registeredList.querySelectorAll('[data-inspect-package]').forEach(button=>button.addEventListener('click',()=>{
       const pkg=items.find(item=>item.programmeId===button.dataset.inspectPackage);
@@ -141,8 +202,7 @@ globalThis.MzansiProgrammePackageManager = (() => {
       const result=await MzansiProgrammePackageManager.removeRegistered(programmeId);
       if(result.removed){
         await renderRegistered();
-        await renderRegistered();
-      dispatchEvent(new CustomEvent('mzansi:programmes-changed'));
+        dispatchEvent(new CustomEvent('mzansi:programmes-changed'));
       }
     }));
   }
@@ -152,21 +212,41 @@ globalThis.MzansiProgrammePackageManager = (() => {
       preview.innerHTML='<strong>NOT READY</strong><p class="helper">'+check.errors.join(' ')+'</p>';
       return;
     }
-    preview.innerHTML='<article class="programme-card"><p class="eyebrow">'+pkg.category.toUpperCase()+' • '+pkg.status+'</p><h3>'+pkg.programmeName+'</h3><p class="programme-meta">'+pkg.tradeOrField+(pkg.qualification.qualificationId?' • '+pkg.qualification.qualificationId:'')+'</p><p>'+pkg.shortDescription+'</p><p class="helper">Standalone PWA • '+(pkg.pwa.offlineCapable?'offline capable':'offline not confirmed')+' • '+(pkg.pwa.umlaCompatible?'UMLA compatible':'UMLA not confirmed')+'</p><p class="helper">Preview validated. Registration keeps this PWA separate and does not alter the Hub core.</p><button id="registerPackageBtn" class="primary-btn" type="button">Approve and register locally</button></article>';
+    const actionLabel=editingProgrammeId?'Save package update':'Approve and register locally';
+    preview.innerHTML='<article class="programme-card"><p class="eyebrow">'+pkg.category.toUpperCase()+' • '+pkg.status+'</p><h3>'+esc(pkg.programmeName)+'</h3><p class="programme-meta">'+esc(pkg.tradeOrField)+(pkg.qualification.qualificationId?' • '+esc(pkg.qualification.qualificationId):'')+'</p><p>'+esc(pkg.shortDescription)+'</p><p class="helper">Standalone PWA • '+(pkg.pwa.offlineCapable?'offline capable':'offline not confirmed')+' • '+(pkg.pwa.umlaCompatible?'UMLA compatible':'UMLA not confirmed')+'</p><p class="helper">'+(editingProgrammeId?'Validated update. The package identity remains unchanged.':'Preview validated. Registration keeps this PWA separate and does not alter the Hub core.')+'</p><button id="registerPackageBtn" class="primary-btn" type="button">'+actionLabel+'</button></article>';
     document.getElementById('registerPackageBtn').addEventListener('click',async()=>{
+      if(editingProgrammeId){
+        const result=await MzansiProgrammePackageManager.updateRegistered(editingProgrammeId,pkg);
+        if(!result.updated){
+          preview.insertAdjacentHTML('beforeend','<p class="helper"><strong>UPDATE BLOCKED:</strong> '+result.errors.join(' ')+'</p>');
+          return;
+        }
+        preview.innerHTML='<article class="programme-card"><p class="eyebrow">PACKAGE UPDATED</p><h3>'+esc(pkg.programmeName)+'</h3><p class="helper">The registered package was updated locally. The standalone PWA and Hub core were not changed.</p></article>';
+        editingProgrammeId=null;
+        const idField=form.elements.namedItem('programmeId');
+        if(idField) idField.disabled=false;
+        await renderRegistered();
+        dispatchEvent(new CustomEvent('mzansi:programmes-changed'));
+        return;
+      }
       const result=await MzansiProgrammePackageManager.register(pkg);
       if(!result.registered){
         preview.insertAdjacentHTML('beforeend','<p class="helper"><strong>REGISTRATION BLOCKED:</strong> '+result.errors.join(' ')+'</p>');
         return;
       }
-      preview.innerHTML='<article class="programme-card"><p class="eyebrow">REGISTERED LOCALLY</p><h3>'+pkg.programmeName+'</h3><p class="helper">This standalone PWA is now in the local Hub registry. No Hub core code was changed.</p></article>';
+      preview.innerHTML='<article class="programme-card"><p class="eyebrow">REGISTERED LOCALLY</p><h3>'+esc(pkg.programmeName)+'</h3><p class="helper">This standalone PWA is now in the local Hub registry. No Hub core code was changed.</p></article>';
+      await renderRegistered();
       dispatchEvent(new CustomEvent('mzansi:programmes-changed'));
     });
   }
 
   form.addEventListener('submit',event=>{
     event.preventDefault();
+    const idField=form.elements.namedItem('programmeId');
+    const restoreDisabled=Boolean(idField?.disabled);
+    if(restoreDisabled) idField.disabled=false;
     const pkg=MzansiProgrammePackageManager.buildPackage(form);
+    if(restoreDisabled) idField.disabled=true;
     render(pkg,MzansiProgrammePackageManager.validate(pkg));
   });
 
