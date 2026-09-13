@@ -84,6 +84,32 @@ globalThis.MzansiProgrammePackageManager = (() => {
     };
   }
 
+  function activation(pkg){
+    const h=health(pkg);
+    const registered=Boolean(pkg?.registration?.approved);
+    const catalogueOnly=registered && h.registrationReady;
+    const enrolmentReady=catalogueOnly && h.checks.https && h.checks.offline && h.checks.installable;
+    const umlaReady=enrolmentReady && h.checks.umla && h.checks.qualification;
+    const pathwayReady=umlaReady && text(pkg?.learningStructure?.programmeConfig);
+    const fullyActive=pathwayReady && pkg?.learningStructure?.definitionStatus==='COMPLETE';
+    const state=fullyActive?'FULLY_ACTIVE':pathwayReady?'PATHWAY_READY':umlaReady?'UMLA_READY':enrolmentReady?'ENROLMENT_READY':'CATALOGUE_ONLY';
+    return {
+      state,
+      catalogueOnly,
+      enrolmentReady,
+      umlaReady,
+      pathwayReady,
+      fullyActive,
+      reasons:[
+        !registered?'Package is not yet registered.':null,
+        registered&&!enrolmentReady?'Offline/installable/secure launch checks are required for enrolment.':null,
+        enrolmentReady&&!umlaReady?'UMLA compatibility and Qualification ID are required for learning-record integration.':null,
+        umlaReady&&!pathwayReady?'A validated programme pathway is required for progress calculation.':null,
+        pathwayReady&&!fullyActive?'Programme pathway definition must be COMPLETE for full activation.':null
+      ].filter(Boolean)
+    };
+  }
+
   async function saveDraft(pkg){ await MzansiHubStore.set(DRAFT_KEY,pkg); }
   async function loadDraft(){ return await MzansiHubStore.get(DRAFT_KEY); }
 
@@ -93,6 +119,7 @@ globalThis.MzansiProgrammePackageManager = (() => {
   }
 
   function toRegistryEntry(pkg){
+    const a=activation(pkg);
     return {
       programmeId:pkg.programmeId,
       name:pkg.programmeName,
@@ -100,8 +127,11 @@ globalThis.MzansiProgrammePackageManager = (() => {
       qualificationId:pkg.qualification?.qualificationId||undefined,
       status:String(pkg.status||'DRAFT').toLowerCase(),
       pwaUrl:pkg.pwa.launchUrl,
-      schemaVersion:pkg.pwa.umlaCompatible?'UMLA-LR-0.1':undefined,
-      learningRecordsEnabled:Boolean(pkg.pwa.umlaCompatible),
+      schemaVersion:a.umlaReady?'UMLA-LR-0.1':undefined,
+      enrolmentEnabled:a.enrolmentReady,
+      learningRecordsEnabled:a.umlaReady,
+      pathwayEnabled:a.pathwayReady,
+      activationState:a.state,
       localPackage:true
     };
   }
@@ -183,7 +213,7 @@ globalThis.MzansiProgrammePackageManager = (() => {
     return {registered:true,package:approved};
   }
 
-  return {buildPackage,validate,health,saveDraft,loadDraft,listRegistered,toRegistryEntry,register,removeRegistered,updateRegistered,exportPackage,prepareImportedPackage};
+  return {buildPackage,validate,health,activation,saveDraft,loadDraft,listRegistered,toRegistryEntry,register,removeRegistered,updateRegistered,exportPackage,prepareImportedPackage};
 })();
 
 (function(){
@@ -252,13 +282,28 @@ globalThis.MzansiProgrammePackageManager = (() => {
       '<p class="helper">'+(h.registrationReady?'Safe for local registration after review.':'Not safe to register yet.')+'</p></div>';
   }
 
+  function activationMarkup(pkg){
+    const a=MzansiProgrammePackageManager.activation(pkg);
+    const rows=[
+      ['Catalogue',a.catalogueOnly],
+      ['Enrolment',a.enrolmentReady],
+      ['UMLA records',a.umlaReady],
+      ['Pathway progress',a.pathwayReady],
+      ['Fully active',a.fullyActive]
+    ];
+    return '<div class="activation-box"><p class="activation-title"><strong>ACTIVATION: '+esc(a.state.replaceAll('_',' '))+'</strong></p>'+
+      rows.map(row=>'<div class="health-row"><span>'+esc(row[0])+'</span><strong>'+(row[1]?'READY':'LOCKED')+'</strong></div>').join('')+
+      (a.reasons.length?'<p class="helper">'+a.reasons.map(esc).join(' ')+'</p>':'<p class="helper">All activation gates are open.</p>')+
+      '</div>';
+  }
+
   async function renderRegistered(){
     const items=await MzansiProgrammePackageManager.listRegistered();
     if(!items.length){
       registeredList.innerHTML='<p class="helper">No standalone PWAs have been registered locally yet.</p>';
       return;
     }
-    registeredList.innerHTML=items.map(pkg=>'<article class="package-manage-card" data-package-id="'+esc(pkg.programmeId)+'"><div><p class="eyebrow">'+esc(pkg.category).toUpperCase()+' • '+esc(pkg.status)+'</p><h4>'+esc(pkg.programmeName)+'</h4><p class="programme-meta">'+esc(pkg.tradeOrField)+(pkg.qualification?.qualificationId?' • '+esc(pkg.qualification.qualificationId):'')+'</p>'+healthMarkup(pkg)+'</div><div class="package-actions"><button class="secondary-btn" type="button" data-export-package="'+esc(pkg.programmeId)+'">Export package file</button><button class="secondary-btn" type="button" data-edit-package="'+esc(pkg.programmeId)+'">Edit package</button><button class="secondary-btn" type="button" data-inspect-package="'+esc(pkg.programmeId)+'">View details</button><button class="danger-btn" type="button" data-remove-package="'+esc(pkg.programmeId)+'">Remove from Hub</button></div><div class="package-detail" id="detail-'+esc(pkg.programmeId)+'" hidden></div></article>').join('');
+    registeredList.innerHTML=items.map(pkg=>'<article class="package-manage-card" data-package-id="'+esc(pkg.programmeId)+'"><div><p class="eyebrow">'+esc(pkg.category).toUpperCase()+' • '+esc(pkg.status)+'</p><h4>'+esc(pkg.programmeName)+'</h4><p class="programme-meta">'+esc(pkg.tradeOrField)+(pkg.qualification?.qualificationId?' • '+esc(pkg.qualification.qualificationId):'')+'</p>'+healthMarkup(pkg)+activationMarkup(pkg)+'</div><div class="package-actions"><button class="secondary-btn" type="button" data-export-package="'+esc(pkg.programmeId)+'">Export package file</button><button class="secondary-btn" type="button" data-edit-package="'+esc(pkg.programmeId)+'">Edit package</button><button class="secondary-btn" type="button" data-inspect-package="'+esc(pkg.programmeId)+'">View details</button><button class="danger-btn" type="button" data-remove-package="'+esc(pkg.programmeId)+'">Remove from Hub</button></div><div class="package-detail" id="detail-'+esc(pkg.programmeId)+'" hidden></div></article>').join('');
 
     registeredList.querySelectorAll('[data-export-package]').forEach(button=>button.addEventListener('click',()=>{
       const pkg=items.find(item=>item.programmeId===button.dataset.exportPackage);
@@ -278,7 +323,7 @@ globalThis.MzansiProgrammePackageManager = (() => {
       detail.hidden=!show;
       button.textContent=show?'Hide details':'View details';
       if(show){
-        detail.innerHTML='<p><strong>Programme ID:</strong> '+esc(pkg.programmeId)+'</p><p><strong>Description:</strong> '+esc(pkg.shortDescription)+'</p><p><strong>PWA:</strong> '+esc(pkg.pwa?.launchUrl)+'</p><p><strong>Offline:</strong> '+(pkg.pwa?.offlineCapable?'Yes':'Not confirmed')+'</p><p><strong>Installable:</strong> '+(pkg.pwa?.installable?'Yes':'Not confirmed')+'</p><p><strong>UMLA:</strong> '+(pkg.pwa?.umlaCompatible?'Yes':'Not confirmed')+'</p><p><strong>Registered:</strong> '+esc(pkg.registration?.approvedAt||'Unknown')+'</p>';
+        detail.innerHTML='<p><strong>Programme ID:</strong> '+esc(pkg.programmeId)+'</p><p><strong>Description:</strong> '+esc(pkg.shortDescription)+'</p><p><strong>PWA:</strong> '+esc(pkg.pwa?.launchUrl)+'</p><p><strong>Offline:</strong> '+(pkg.pwa?.offlineCapable?'Yes':'Not confirmed')+'</p><p><strong>Installable:</strong> '+(pkg.pwa?.installable?'Yes':'Not confirmed')+'</p><p><strong>UMLA:</strong> '+(pkg.pwa?.umlaCompatible?'Yes':'Not confirmed')+'</p><p><strong>Activation:</strong> '+esc(MzansiProgrammePackageManager.activation(pkg).state.replaceAll('_',' '))+'</p><p><strong>Registered:</strong> '+esc(pkg.registration?.approvedAt||'Unknown')+'</p>';
       }
     }));
 
