@@ -13,3 +13,6 @@
 .pathway-connect{margin-top:14px;padding-top:12px;border-top:1px solid #e5e7eb}.pathway-file-input{width:100%;margin:4px 0}
 
 #enginesView .panel h3{margin-top:4px}#kolibriEngineResult{word-break:break-word}
+
+.diag-row{display:flex;justify-content:space-between;gap:12px;align-items:center;padding-top:10px;margin-top:10px;border-top:1px solid #e5e7eb}
+.diag-row:first-of-type{border-top:0}
