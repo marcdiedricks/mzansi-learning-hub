@@ -1,0 +1,9 @@
+{
+  "profileVersion": "MLH-ENGINE-0.1",
+  "providerId": "KOLIBRI",
+  "mode": "LOCAL_NODE",
+  "baseUrl": "",
+  "enabled": false,
+  "syncEnabled": false,
+  "credentialsStoredInHub": false
+}
