@@ -29,6 +29,7 @@
   <button class="tab" data-view="reportsView">Reports</button>
   <button class="tab" data-view="profileView">Profile</button>
   <button class="tab" data-view="packageView">Add Programme</button>
+  <button class="tab" data-view="enginesView">Engines</button>
 </nav>
 <section id="homeView" class="view active">
   <section class="panel">
@@ -111,6 +112,31 @@
     <div id="registeredPackageList"><p class="helper">Loading local packages…</p></div>
   </section>
 </section>
+<section id="enginesView" class="view">
+  <p class="eyebrow">OPEN-SOURCE ENGINES</p>
+  <h2>Optional local and institutional engines</h2>
+  <section class="panel">
+    <p class="eyebrow">KOLIBRI • LOCAL NODE</p>
+    <h3>Connect an offline learning node</h3>
+    <p class="helper">Kolibri is optional. The Hub continues to work without it. This first adapter stores only the local node address and whether the connection is enabled. No password or API token is stored here.</p>
+    <form id="kolibriEngineForm" class="intake-form">
+      <label>Kolibri local address
+        <input name="kolibriBaseUrl" type="url" placeholder="http://192.168.1.10:8080">
+      </label>
+      <div class="check-row">
+        <label><input name="kolibriEnabled" type="checkbox"> Enable Kolibri local-node connection</label>
+      </div>
+      <button class="primary-btn" type="submit">Save and test local node</button>
+      <button id="clearKolibriProfileBtn" class="secondary-btn" type="button">Clear Kolibri profile</button>
+    </form>
+    <div id="kolibriEngineResult" class="result-card" aria-live="polite"></div>
+  </section>
+  <section class="panel">
+    <p class="eyebrow">MOODLE • INSTITUTIONAL SERVER</p>
+    <h3>Reserved for the next adapter</h3>
+    <p class="helper">Moodle remains optional and is not connected yet. No paid Moodle service or hosted account is required by the Hub.</p>
+  </section>
+</section>
 </main>
 <footer class="app-footer"><span>UMLA-LR-0.1</span><span>Offline-first • validated • derived reporting</span></footer>
 <script src="./hub-storage.js"></script>
@@ -118,6 +144,8 @@
 <script src="./progress-engine.js"></script>
 <script src="./lms-core.js"></script>
 <script src="./programme-package-manager.js"></script>
+<script src="./open-source-engine-bridge.js"></script>
+<script src="./kolibri-adapter.js"></script>
 <script src="./app.js"></script>
 </body>
 </html>
