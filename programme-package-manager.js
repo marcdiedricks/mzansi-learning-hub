@@ -99,7 +99,13 @@ globalThis.MzansiProgrammePackageManager = (() => {
     const catalogueOnly=registered && h.registrationReady;
     const enrolmentReady=catalogueOnly && h.checks.https && h.checks.offline && h.checks.installable;
     const umlaReady=enrolmentReady && h.checks.umla && h.checks.qualification;
-    const pathwayReady=umlaReady && pkg?.learningStructure?.programmeConfig && typeof pkg.learningStructure.programmeConfig==='object' && !Array.isArray(pkg.learningStructure.programmeConfig);
+    const pathwayReady=Boolean(
+      umlaReady &&
+      pkg?.learningStructure?.validated===true &&
+      pkg?.learningStructure?.programmeConfig &&
+      typeof pkg.learningStructure.programmeConfig==='object' &&
+      !Array.isArray(pkg.learningStructure.programmeConfig)
+    );
     const fullyActive=Boolean(pathwayReady && pkg?.learningStructure?.definitionStatus==='COMPLETE');
     const state=fullyActive?'FULLY_ACTIVE':pathwayReady?'PATHWAY_READY':umlaReady?'UMLA_READY':enrolmentReady?'ENROLMENT_READY':'CATALOGUE_ONLY';
     return {
@@ -161,6 +167,7 @@ globalThis.MzansiProgrammePackageManager = (() => {
       learningStructure:{
         definitionStatus:config.definitionStatus,
         programmeConfig:config,
+        validated:true,
         connectedAt:new Date().toISOString()
       },
       registration:{
@@ -200,8 +207,12 @@ globalThis.MzansiProgrammePackageManager = (() => {
     if(!payload||typeof payload!=='object'||Array.isArray(payload)){
       return {valid:false,errors:['Package file must contain one programme package object.']};
     }
+    const importedLearningStructure=payload.learningStructure&&typeof payload.learningStructure==='object'&&!Array.isArray(payload.learningStructure)
+      ? {...payload.learningStructure,validated:false}
+      : payload.learningStructure;
     const pkg={
       ...payload,
+      learningStructure:importedLearningStructure,
       registration:{approved:false,approvedAt:null}
     };
     const check=validate(pkg);
