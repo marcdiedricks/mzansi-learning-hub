@@ -51,7 +51,7 @@ globalThis.MzansiOpenSourceBridge = (() => {
     if (profile.profileVersion !== PROFILE_VERSION) errors.push('Unsupported engine profile version.');
     if (!provider(profile.providerId)) errors.push('Unsupported open-source engine provider.');
     if (!['LOCAL_NODE','INSTITUTIONAL_SERVER'].includes(profile.mode)) errors.push('mode must be LOCAL_NODE or INSTITUTIONAL_SERVER.');
-    if (profile.baseUrl != null && !text(profile.baseUrl)) errors.push('baseUrl must be a non-empty string when supplied.');
+    if (profile.baseUrl != null && profile.baseUrl !== '' && !text(profile.baseUrl)) errors.push('baseUrl must be a non-empty string when supplied.');
     if (profile.enabled === true && !text(profile.baseUrl)) errors.push('baseUrl is required before an engine connection can be enabled.');
 
     try {
