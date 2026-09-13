@@ -366,6 +366,7 @@ globalThis.MzansiProgrammePackageManager = (() => {
     const pkg=MzansiProgrammePackageManager.buildPackage(form);
     if(restoreDisabled) idField.disabled=true;
     render(pkg,MzansiProgrammePackageManager.validate(pkg));
+    preview.scrollIntoView({behavior:'smooth',block:'start'});
   });
 
   saveBtn.addEventListener('click',async()=>{
@@ -376,6 +377,7 @@ globalThis.MzansiProgrammePackageManager = (() => {
     if(restoreDisabled) idField.disabled=true;
     const check=MzansiProgrammePackageManager.validate(pkg);
     render(pkg,check);
+    preview.scrollIntoView({behavior:'smooth',block:'start'});
     if(!check.valid) return;
     await MzansiProgrammePackageManager.saveDraft(pkg);
     saveBtn.textContent='Draft saved locally';
