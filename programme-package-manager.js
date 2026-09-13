@@ -68,6 +68,14 @@ globalThis.MzansiProgrammePackageManager = (() => {
     };
   }
 
+  async function removeRegistered(programmeId){
+    const items=await listRegistered();
+    const next=items.filter(item=>item.programmeId!==programmeId);
+    if(next.length===items.length) return {removed:false};
+    await MzansiHubStore.set(REGISTERED_KEY,next);
+    return {removed:true};
+  }
+
   async function register(pkg){
     const check=validate(pkg);
     if(!check.valid) return {registered:false,errors:check.errors};
@@ -87,14 +95,57 @@ globalThis.MzansiProgrammePackageManager = (() => {
     return {registered:true,package:approved};
   }
 
-  return {buildPackage,validate,saveDraft,loadDraft,listRegistered,toRegistryEntry,register};
+  return {buildPackage,validate,saveDraft,loadDraft,listRegistered,toRegistryEntry,register,removeRegistered};
 })();
 
 (function(){
   const form=document.getElementById('programmePackageForm');
   const preview=document.getElementById('packagePreview');
   const saveBtn=document.getElementById('savePackageDraftBtn');
-  if(!form||!preview||!saveBtn) return;
+  const registeredList=document.getElementById('registeredPackageList');
+  if(!form||!preview||!saveBtn||!registeredList) return;
+
+  function esc(value){
+    return String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+  }
+
+  async function renderRegistered(){
+    const items=await MzansiProgrammePackageManager.listRegistered();
+    if(!items.length){
+      registeredList.innerHTML='<p class="helper">No standalone PWAs have been registered locally yet.</p>';
+      return;
+    }
+    registeredList.innerHTML=items.map(pkg=>'<article class="package-manage-card" data-package-id="'+esc(pkg.programmeId)+'"><div><p class="eyebrow">'+esc(pkg.category).toUpperCase()+' • '+esc(pkg.status)+'</p><h4>'+esc(pkg.programmeName)+'</h4><p class="programme-meta">'+esc(pkg.tradeOrField)+(pkg.qualification?.qualificationId?' • '+esc(pkg.qualification.qualificationId):'')+'</p></div><div class="package-actions"><button class="secondary-btn" type="button" data-inspect-package="'+esc(pkg.programmeId)+'">View details</button><button class="danger-btn" type="button" data-remove-package="'+esc(pkg.programmeId)+'">Remove from Hub</button></div><div class="package-detail" id="detail-'+esc(pkg.programmeId)+'" hidden></div></article>').join('');
+
+    registeredList.querySelectorAll('[data-inspect-package]').forEach(button=>button.addEventListener('click',()=>{
+      const pkg=items.find(item=>item.programmeId===button.dataset.inspectPackage);
+      if(!pkg) return;
+      const detail=document.getElementById('detail-'+pkg.programmeId);
+      const show=detail.hidden;
+      detail.hidden=!show;
+      button.textContent=show?'Hide details':'View details';
+      if(show){
+        detail.innerHTML='<p><strong>Programme ID:</strong> '+esc(pkg.programmeId)+'</p><p><strong>Description:</strong> '+esc(pkg.shortDescription)+'</p><p><strong>PWA:</strong> '+esc(pkg.pwa?.launchUrl)+'</p><p><strong>Offline:</strong> '+(pkg.pwa?.offlineCapable?'Yes':'Not confirmed')+'</p><p><strong>Installable:</strong> '+(pkg.pwa?.installable?'Yes':'Not confirmed')+'</p><p><strong>UMLA:</strong> '+(pkg.pwa?.umlaCompatible?'Yes':'Not confirmed')+'</p><p><strong>Registered:</strong> '+esc(pkg.registration?.approvedAt||'Unknown')+'</p>';
+      }
+    }));
+
+    registeredList.querySelectorAll('[data-remove-package]').forEach(button=>button.addEventListener('click',async()=>{
+      const programmeId=button.dataset.removePackage;
+      const pkg=items.find(item=>item.programmeId===programmeId);
+      if(!pkg) return;
+      if(button.dataset.confirm!=='yes'){
+        button.dataset.confirm='yes';
+        button.textContent='Tap again to confirm removal';
+        return;
+      }
+      const result=await MzansiProgrammePackageManager.removeRegistered(programmeId);
+      if(result.removed){
+        await renderRegistered();
+        await renderRegistered();
+      dispatchEvent(new CustomEvent('mzansi:programmes-changed'));
+      }
+    }));
+  }
 
   function render(pkg,check){
     if(!check.valid){
@@ -127,6 +178,8 @@ globalThis.MzansiProgrammePackageManager = (() => {
     await MzansiProgrammePackageManager.saveDraft(pkg);
     saveBtn.textContent='Draft saved locally';
   });
+
+  renderRegistered().catch(()=>{registeredList.innerHTML='<p class="helper">Local package list could not be loaded.</p>';});
 
   MzansiProgrammePackageManager.loadDraft().then(pkg=>{
     if(!pkg) return;
