@@ -19,7 +19,21 @@ globalThis.MzansiProgressEngine = (() => {
     const accepted = Array.isArray(activity?.satisfiedBy) && activity.satisfiedBy.length
       ? new Set(activity.satisfiedBy)
       : SATISFIED_OUTCOMES;
-    return accepted.has(event.outcome);
+    if (!accepted.has(event.outcome)) return false;
+
+    const rule = activity?.completionRule;
+    if (!rule || typeof rule !== 'object') return true;
+
+    if (Array.isArray(rule.requiredEventTypes) && rule.requiredEventTypes.length && !rule.requiredEventTypes.includes(event.eventType)) {
+      return false;
+    }
+
+    if (typeof rule.minimumScorePercent === 'number') {
+      const percent = event?.score?.percent;
+      if (typeof percent !== 'number' || percent < rule.minimumScorePercent) return false;
+    }
+
+    return true;
   }
 
   function moduleProgress(module, eventMap) {
@@ -103,7 +117,8 @@ globalThis.MzansiProgressEngine = (() => {
               stageId: stage.stageId,
               moduleId: module.moduleId,
               activityId: activity.activityId,
-              activityType: activity.activityType
+              activityType: activity.activityType,
+              completionRule: activity.completionRule || null
             };
           }
         }
