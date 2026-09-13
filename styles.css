@@ -11,3 +11,5 @@
 .activation-box{margin:12px 0;padding:12px;border:1px solid #cbd5e1;border-radius:14px;background:#f8fafc}.activation-title{margin:0 0 8px}.activation-pill{display:inline-block;margin:4px 0 10px;padding:6px 10px;border-radius:999px;background:#e5e7eb;font-size:.78rem;font-weight:800;letter-spacing:.04em}.secondary-btn:disabled{opacity:.55;cursor:not-allowed}
 
 .pathway-connect{margin-top:14px;padding-top:12px;border-top:1px solid #e5e7eb}.pathway-file-input{width:100%;margin:4px 0}
+
+#enginesView .panel h3{margin-top:4px}#kolibriEngineResult{word-break:break-word}
