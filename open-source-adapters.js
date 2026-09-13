@@ -39,5 +39,32 @@ globalThis.MzansiOpenSourceAdapters = (() => {
     return { valid, results };
   }
 
-  return { kolibri, moodle, validateAll };
+  async function selfTest() {
+    const adapters = { KOLIBRI: kolibri(), MOODLE: moodle() };
+    const results = {};
+    let valid = true;
+
+    for (const [key, adapter] of Object.entries(adapters)) {
+      const runtime = await MzansiAdapterContract.runtimeCheck(adapter);
+      const providerMatches = runtime.valid && runtime.provider?.providerId === key;
+      const safeStub = runtime.valid &&
+        runtime.status?.connected === false &&
+        runtime.status?.authenticated === false &&
+        runtime.status?.syncEnabled === false &&
+        runtime.health?.simulated === true &&
+        runtime.health?.networkUsed === false;
+
+      results[key] = {
+        ...runtime,
+        providerMatches,
+        safeStub
+      };
+
+      if (!runtime.valid || !providerMatches || !safeStub) valid = false;
+    }
+
+    return { valid, results };
+  }
+
+  return { kolibri, moodle, validateAll, selfTest };
 })();
