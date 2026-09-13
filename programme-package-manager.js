@@ -76,6 +76,34 @@ globalThis.MzansiProgrammePackageManager = (() => {
     return {removed:true};
   }
 
+  function exportPackage(pkg){
+    const portable={
+      ...pkg,
+      registration:{approved:false,approvedAt:null,updatedAt:null}
+    };
+    const blob=new Blob([JSON.stringify(portable,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const link=document.createElement('a');
+    link.href=url;
+    link.download=(pkg.programmeId||'programme')+'.mlh-package.json';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function prepareImportedPackage(payload){
+    if(!payload||typeof payload!=='object'||Array.isArray(payload)){
+      return {valid:false,errors:['Package file must contain one programme package object.']};
+    }
+    const pkg={
+      ...payload,
+      registration:{approved:false,approvedAt:null}
+    };
+    const check=validate(pkg);
+    return check.valid?{valid:true,package:pkg,errors:[]}:{valid:false,errors:check.errors};
+  }
+
   async function updateRegistered(originalProgrammeId,pkg){
     const check=validate(pkg);
     if(!check.valid) return {updated:false,errors:check.errors};
@@ -117,7 +145,7 @@ globalThis.MzansiProgrammePackageManager = (() => {
     return {registered:true,package:approved};
   }
 
-  return {buildPackage,validate,saveDraft,loadDraft,listRegistered,toRegistryEntry,register,removeRegistered,updateRegistered};
+  return {buildPackage,validate,saveDraft,loadDraft,listRegistered,toRegistryEntry,register,removeRegistered,updateRegistered,exportPackage,prepareImportedPackage};
 })();
 
 (function(){
@@ -125,7 +153,10 @@ globalThis.MzansiProgrammePackageManager = (() => {
   const preview=document.getElementById('packagePreview');
   const saveBtn=document.getElementById('savePackageDraftBtn');
   const registeredList=document.getElementById('registeredPackageList');
-  if(!form||!preview||!saveBtn||!registeredList) return;
+  const importInput=document.getElementById('programmePackageFileInput');
+  const importBtn=document.getElementById('importProgrammePackageBtn');
+  const importResult=document.getElementById('packageImportResult');
+  if(!form||!preview||!saveBtn||!registeredList||!importInput||!importBtn||!importResult) return;
 
   function esc(value){
     return String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
@@ -171,7 +202,12 @@ globalThis.MzansiProgrammePackageManager = (() => {
       registeredList.innerHTML='<p class="helper">No standalone PWAs have been registered locally yet.</p>';
       return;
     }
-    registeredList.innerHTML=items.map(pkg=>'<article class="package-manage-card" data-package-id="'+esc(pkg.programmeId)+'"><div><p class="eyebrow">'+esc(pkg.category).toUpperCase()+' • '+esc(pkg.status)+'</p><h4>'+esc(pkg.programmeName)+'</h4><p class="programme-meta">'+esc(pkg.tradeOrField)+(pkg.qualification?.qualificationId?' • '+esc(pkg.qualification.qualificationId):'')+'</p></div><div class="package-actions"><button class="secondary-btn" type="button" data-edit-package="'+esc(pkg.programmeId)+'">Edit package</button><button class="secondary-btn" type="button" data-inspect-package="'+esc(pkg.programmeId)+'">View details</button><button class="danger-btn" type="button" data-remove-package="'+esc(pkg.programmeId)+'">Remove from Hub</button></div><div class="package-detail" id="detail-'+esc(pkg.programmeId)+'" hidden></div></article>').join('');
+    registeredList.innerHTML=items.map(pkg=>'<article class="package-manage-card" data-package-id="'+esc(pkg.programmeId)+'"><div><p class="eyebrow">'+esc(pkg.category).toUpperCase()+' • '+esc(pkg.status)+'</p><h4>'+esc(pkg.programmeName)+'</h4><p class="programme-meta">'+esc(pkg.tradeOrField)+(pkg.qualification?.qualificationId?' • '+esc(pkg.qualification.qualificationId):'')+'</p></div><div class="package-actions"><button class="secondary-btn" type="button" data-export-package="'+esc(pkg.programmeId)+'">Export package file</button><button class="secondary-btn" type="button" data-edit-package="'+esc(pkg.programmeId)+'">Edit package</button><button class="secondary-btn" type="button" data-inspect-package="'+esc(pkg.programmeId)+'">View details</button><button class="danger-btn" type="button" data-remove-package="'+esc(pkg.programmeId)+'">Remove from Hub</button></div><div class="package-detail" id="detail-'+esc(pkg.programmeId)+'" hidden></div></article>').join('');
+
+    registeredList.querySelectorAll('[data-export-package]').forEach(button=>button.addEventListener('click',()=>{
+      const pkg=items.find(item=>item.programmeId===button.dataset.exportPackage);
+      if(pkg) MzansiProgrammePackageManager.exportPackage(pkg);
+    }));
 
     registeredList.querySelectorAll('[data-edit-package]').forEach(button=>button.addEventListener('click',()=>{
       const pkg=items.find(item=>item.programmeId===button.dataset.editPackage);
@@ -239,6 +275,30 @@ globalThis.MzansiProgrammePackageManager = (() => {
       dispatchEvent(new CustomEvent('mzansi:programmes-changed'));
     });
   }
+
+  importBtn.addEventListener('click',async()=>{
+    if(!importInput.files?.length){
+      importResult.textContent='Choose a programme package JSON file first.';
+      return;
+    }
+    try{
+      const payload=JSON.parse(await importInput.files[0].text());
+      const prepared=MzansiProgrammePackageManager.prepareImportedPackage(payload);
+      if(!prepared.valid){
+        importResult.innerHTML='<strong>IMPORT BLOCKED</strong><p>'+prepared.errors.map(esc).join(' ')+'</p>';
+        return;
+      }
+      editingProgrammeId=null;
+      const idField=form.elements.namedItem('programmeId');
+      if(idField) idField.disabled=false;
+      fillForm(prepared.package);
+      render(prepared.package,prepared);
+      importResult.innerHTML='<strong>IMPORT READY</strong><p>Package validated and loaded into the form. Review it before approving local registration.</p>';
+      document.getElementById('packageView').scrollIntoView({behavior:'smooth',block:'start'});
+    }catch(error){
+      importResult.innerHTML='<strong>IMPORT BLOCKED</strong><p>The selected file is not valid JSON.</p>';
+    }
+  });
 
   form.addEventListener('submit',event=>{
     event.preventDefault();
