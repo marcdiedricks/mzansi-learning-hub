@@ -59,6 +59,12 @@ function programmeCard(programme,learning=false){
 }
 
 async function loadProgrammeConfig(programme){
+  if(programme.programmeConfigObject){
+    const check=MzansiLMSCore.validateProgrammeConfig(programme.programmeConfigObject,programme);
+    if(!check.valid) throw new Error(`${programme.programmeId}: ${check.errors.join(' ')}`);
+    programmeConfigs.set(programme.programmeId,programme.programmeConfigObject);
+    return;
+  }
   if(!programme.programmeConfig) return;
   const response=await fetch(programme.programmeConfig);
   if(!response.ok) throw new Error(`Programme config unavailable for ${programme.programmeId}`);
