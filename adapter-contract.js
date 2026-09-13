@@ -45,6 +45,22 @@ globalThis.MzansiAdapterContract = (() => {
     const check = validateAdapter(adapter);
     if (!check.valid) return { valid: false, errors: check.errors };
 
+    const provider = adapter.getProviderInfo();
+    if (!provider || typeof provider !== 'object' || Array.isArray(provider) ||
+        typeof provider.providerId !== 'string' || !provider.providerId.trim() ||
+        typeof provider.label !== 'string' || !provider.label.trim()) {
+      return { valid: false, errors: ['getProviderInfo() must return a provider with providerId and label.'] };
+    }
+
+    const status = adapter.getStatus();
+    if (!status || typeof status !== 'object' || Array.isArray(status) ||
+        typeof status.configured !== 'boolean' ||
+        typeof status.connected !== 'boolean' ||
+        typeof status.authenticated !== 'boolean' ||
+        typeof status.syncEnabled !== 'boolean') {
+      return { valid: false, errors: ['getStatus() must return boolean configured, connected, authenticated and syncEnabled fields.'] };
+    }
+
     const capabilities = adapter.listCapabilities();
     if (!capabilities || typeof capabilities !== 'object' || Array.isArray(capabilities)) {
       return { valid: false, errors: ['listCapabilities() must return an object.'] };
@@ -57,13 +73,43 @@ globalThis.MzansiAdapterContract = (() => {
 
     return {
       valid: true,
-      provider: adapter.getProviderInfo(),
+      provider,
+      status,
       capabilities,
       optionalMethods: optional
     };
   }
 
+  async function runtimeCheck(adapter) {
+    const structural = capabilityReport(adapter);
+    if (!structural.valid) return structural;
+
+    try {
+      const health = await adapter.healthCheck();
+      if (!health || typeof health !== 'object' || Array.isArray(health) ||
+          typeof health.ok !== 'boolean') {
+        return { valid: false, errors: ['healthCheck() must return an object with boolean ok.'] };
+      }
+      return {
+        valid: true,
+        provider: structural.provider,
+        status: structural.status,
+        capabilities: structural.capabilities,
+        optionalMethods: structural.optionalMethods,
+        health
+      };
+    } catch {
+      return { valid: false, errors: ['healthCheck() threw an error.'] };
+    }
+  }
+
   function createReadOnlyStub(providerInfo, capabilities = {}) {
+    if (!providerInfo || typeof providerInfo !== 'object' ||
+        typeof providerInfo.providerId !== 'string' || !providerInfo.providerId.trim() ||
+        typeof providerInfo.label !== 'string' || !providerInfo.label.trim()) {
+      throw new Error('A valid providerInfo object is required.');
+    }
+
     return Object.freeze({
       contractVersion: CONTRACT_VERSION,
       getProviderInfo() {
@@ -106,6 +152,7 @@ globalThis.MzansiAdapterContract = (() => {
     OPTIONAL_METHODS,
     validateAdapter,
     capabilityReport,
+    runtimeCheck,
     createReadOnlyStub
   };
 })();
