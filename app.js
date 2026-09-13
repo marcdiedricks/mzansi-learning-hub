@@ -340,3 +340,29 @@ addEventListener('mzansi:programmes-changed',()=>MzansiLearningHub.refreshProgra
 
 if('serviceWorker'in navigator){addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(console.error));}
 init();
+
+
+const adapterDiagnosticsBtn=document.getElementById('runAdapterDiagnosticsBtn');
+if(adapterDiagnosticsBtn){
+  adapterDiagnosticsBtn.addEventListener('click',async()=>{
+    const box=document.getElementById('adapterDiagnosticsResult');
+    if(!box||!globalThis.MzansiOpenSourceAdapters){
+      if(box) box.innerHTML='<strong>DIAGNOSTICS BLOCKED</strong><p>Adapter contract is unavailable.</p>';
+      return;
+    }
+    const result=await MzansiOpenSourceAdapters.selfTest();
+    const providerCard=(key,label)=>{
+      const item=result.results?.[key];
+      const structural=item?.valid===true;
+      const providerMatch=item?.providerMatches===true;
+      const safe=item?.safeStub===true;
+      const health=item?.health?.ok===true;
+      return `<div class="diag-row"><span>${label}</span><strong>${structural&&providerMatch&&safe&&health?'PASS':'CHECK'}</strong></div>
+        <p class="helper">Contract ${structural?'PASS':'CHECK'} • Provider ${providerMatch?'PASS':'CHECK'} • Safe stub ${safe?'PASS':'CHECK'} • Health ${health?'PASS':'CHECK'}</p>`;
+    };
+    box.innerHTML=`<strong>${result.valid?'ADAPTER DIAGNOSTICS PASS':'ADAPTER DIAGNOSTICS CHECK'}</strong>
+      ${providerCard('KOLIBRI','Kolibri')}
+      ${providerCard('MOODLE','Moodle')}
+      <p class="helper">Network used: NO • Authentication attempted: NO • Live sync: NO</p>`;
+  });
+}
