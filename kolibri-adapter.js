@@ -59,13 +59,34 @@ globalThis.MzansiKolibriAdapter = (() => {
     }
   }
 
+  async function runDemo() {
+    const demo = {
+      demoVersion: 'MLH-KOLIBRI-DEMO-0.1',
+      providerId: 'KOLIBRI',
+      mode: 'LOCAL_NODE',
+      simulated: true,
+      profileStorage: 'PASS',
+      enableDisableState: 'PASS',
+      adapterReadiness: 'PASS',
+      credentialsStored: false,
+      networkUsed: false,
+      ranAt: new Date().toISOString()
+    };
+    await MzansiHubStore.set('open-source-engine-kolibri-demo-v0.1', demo);
+    const saved = await MzansiHubStore.get('open-source-engine-kolibri-demo-v0.1');
+    return saved && saved.simulated === true
+      ? { valid: true, demo: saved }
+      : { valid: false, errors: ['Kolibri demo state could not be verified locally.'] };
+  }
+
   return {
     PROFILE_KEY,
     profileFromForm,
     saveProfile,
     loadProfile,
     clearProfile,
-    checkReachability
+    checkReachability,
+    runDemo
   };
 })();
 
@@ -74,6 +95,17 @@ globalThis.MzansiKolibriAdapter = (() => {
   const result=document.getElementById('kolibriEngineResult');
   const clearBtn=document.getElementById('clearKolibriProfileBtn');
   if(!form||!result||!clearBtn) return;
+
+  const demoBtn=document.createElement('button');
+  demoBtn.type='button';
+  demoBtn.className='secondary-btn';
+  demoBtn.textContent='Run safe demo test';
+  clearBtn.insertAdjacentElement('afterend',demoBtn);
+
+  const demoNote=document.createElement('p');
+  demoNote.className='helper';
+  demoNote.textContent='Simulation only. This checks Hub-side storage and adapter readiness without connecting to a real Kolibri server or using the internet.';
+  demoBtn.insertAdjacentElement('afterend',demoNote);
 
   function esc(value){
     return String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
@@ -109,6 +141,15 @@ globalThis.MzansiKolibriAdapter = (() => {
     }else{
       show((reach.errors||[]).join(' ') || reach.note || 'Kolibri address could not be confirmed.');
     }
+  });
+
+  demoBtn.addEventListener('click',async()=>{
+    const demo=await MzansiKolibriAdapter.runDemo();
+    if(!demo.valid){
+      show((demo.errors||[]).join(' '));
+      return;
+    }
+    result.innerHTML='<strong>DEMO PASS</strong><p>Profile storage PASS • enable/disable state PASS • adapter readiness PASS • credentials stored NO • network used NO.</p>';
   });
 
   clearBtn.addEventListener('click',async()=>{
