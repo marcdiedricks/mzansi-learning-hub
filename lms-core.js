@@ -136,6 +136,8 @@ globalThis.MzansiLMSCore = (() => {
 
   async function enrol(programmeId) {
     if (!registry.has(programmeId)) throw new Error('Programme is not registered.');
+    const programme=registry.get(programmeId);
+    if (programme.enrolmentEnabled === false) throw new Error('Programme is not ready for enrolment.');
     const learner = await getOrCreateLearner();
     const existing = (await MzansiHubStore.get(ENROLMENTS_KEY)) || [];
     const found = existing.find(item => item.learnerId === learner.learnerId && item.programmeId === programmeId);
