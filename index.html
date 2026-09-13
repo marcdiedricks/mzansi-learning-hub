@@ -93,6 +93,14 @@
     </form>
   </section>
   <section class="panel">
+    <p class="eyebrow">IMPORT PACKAGE FILE</p>
+    <h3>Bring in a package from another Hub</h3>
+    <p class="helper">Choose an MLH-PACKAGE-0.1 JSON file. It will be validated and loaded into the form for your review. It will not register automatically.</p>
+    <input id="programmePackageFileInput" type="file" accept="application/json,.json">
+    <button id="importProgrammePackageBtn" class="secondary-btn" type="button">Validate imported package</button>
+    <div id="packageImportResult" class="result-card" aria-live="polite"></div>
+  </section>
+  <section class="panel">
     <p class="eyebrow">PREVIEW</p>
     <div id="packagePreview"><p class="helper">Complete the form to preview the standalone programme package.</p></div>
   </section>
