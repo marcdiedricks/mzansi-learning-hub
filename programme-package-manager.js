@@ -42,7 +42,10 @@ globalThis.MzansiProgrammePackageManager = (() => {
     if(pkg.packageVersion!=='MLH-PACKAGE-0.1') errors.push('Unsupported package version.');
     ['programmeId','programmeName','shortDescription','category','tradeOrField'].forEach(key=>{if(!text(pkg[key])) errors.push(key+' is required.');});
     if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(pkg.programmeId||'')) errors.push('Programme ID must use simple lowercase words separated by hyphens.');
-    try{ new URL(pkg.pwa.launchUrl); }catch{ errors.push('A valid PWA launch URL is required.'); }
+    try{
+      const launchUrl=new URL(pkg.pwa.launchUrl);
+      if(!['https:','http:'].includes(launchUrl.protocol)) errors.push('PWA launch URL must use HTTP or HTTPS.');
+    }catch{ errors.push('A valid PWA launch URL is required.'); }
     if(pkg.qualification.nqfLevel!=null && (!Number.isInteger(pkg.qualification.nqfLevel)||pkg.qualification.nqfLevel<1||pkg.qualification.nqfLevel>10)) errors.push('NQF level must be between 1 and 10.');
     return {valid:errors.length===0,errors};
   }
@@ -97,7 +100,8 @@ globalThis.MzansiProgrammePackageManager = (() => {
       qualificationId:pkg.qualification?.qualificationId||undefined,
       status:String(pkg.status||'DRAFT').toLowerCase(),
       pwaUrl:pkg.pwa.launchUrl,
-      schemaVersion:pkg.pwa.umlaCompatible?'UMLA-LR-0.1':'UMLA-LR-0.1',
+      schemaVersion:pkg.pwa.umlaCompatible?'UMLA-LR-0.1':undefined,
+      learningRecordsEnabled:Boolean(pkg.pwa.umlaCompatible),
       localPackage:true
     };
   }
@@ -365,7 +369,11 @@ globalThis.MzansiProgrammePackageManager = (() => {
   });
 
   saveBtn.addEventListener('click',async()=>{
+    const idField=form.elements.namedItem('programmeId');
+    const restoreDisabled=Boolean(idField?.disabled);
+    if(restoreDisabled) idField.disabled=false;
     const pkg=MzansiProgrammePackageManager.buildPackage(form);
+    if(restoreDisabled) idField.disabled=true;
     const check=MzansiProgrammePackageManager.validate(pkg);
     render(pkg,check);
     if(!check.valid) return;
