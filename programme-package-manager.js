@@ -1,5 +1,6 @@
 globalThis.MzansiProgrammePackageManager = (() => {
   const DRAFT_KEY = 'programme-package-draft-v0.1';
+  const REGISTERED_KEY = 'programme-packages-registered-v0.1';
 
   function text(value){ return typeof value === 'string' && value.trim().length > 0; }
 
@@ -49,7 +50,44 @@ globalThis.MzansiProgrammePackageManager = (() => {
   async function saveDraft(pkg){ await MzansiHubStore.set(DRAFT_KEY,pkg); }
   async function loadDraft(){ return await MzansiHubStore.get(DRAFT_KEY); }
 
-  return {buildPackage,validate,saveDraft,loadDraft};
+  async function listRegistered(){
+    const items=await MzansiHubStore.get(REGISTERED_KEY);
+    return Array.isArray(items)?items:[];
+  }
+
+  function toRegistryEntry(pkg){
+    return {
+      programmeId:pkg.programmeId,
+      name:pkg.programmeName,
+      category:pkg.category,
+      qualificationId:pkg.qualification?.qualificationId||undefined,
+      status:String(pkg.status||'DRAFT').toLowerCase(),
+      pwaUrl:pkg.pwa.launchUrl,
+      schemaVersion:pkg.pwa.umlaCompatible?'UMLA-LR-0.1':'UMLA-LR-0.1',
+      localPackage:true
+    };
+  }
+
+  async function register(pkg){
+    const check=validate(pkg);
+    if(!check.valid) return {registered:false,errors:check.errors};
+    if(globalThis.MzansiLearningHub?.hasProgrammeId(pkg.programmeId)){
+      return {registered:false,errors:['That Programme ID is already registered in the Hub.']};
+    }
+    const items=await listRegistered();
+    if(items.some(item=>item.programmeId===pkg.programmeId)){
+      return {registered:false,errors:['That Programme ID is already registered locally.']};
+    }
+    const approved={
+      ...pkg,
+      registration:{approved:true,approvedAt:new Date().toISOString()}
+    };
+    items.push(approved);
+    await MzansiHubStore.set(REGISTERED_KEY,items);
+    return {registered:true,package:approved};
+  }
+
+  return {buildPackage,validate,saveDraft,loadDraft,listRegistered,toRegistryEntry,register};
 })();
 
 (function(){
@@ -63,7 +101,16 @@ globalThis.MzansiProgrammePackageManager = (() => {
       preview.innerHTML='<strong>NOT READY</strong><p class="helper">'+check.errors.join(' ')+'</p>';
       return;
     }
-    preview.innerHTML='<article class="programme-card"><p class="eyebrow">'+pkg.category.toUpperCase()+' • '+pkg.status+'</p><h3>'+pkg.programmeName+'</h3><p class="programme-meta">'+pkg.tradeOrField+(pkg.qualification.qualificationId?' • '+pkg.qualification.qualificationId:'')+'</p><p>'+pkg.shortDescription+'</p><p class="helper">Standalone PWA • '+(pkg.pwa.offlineCapable?'offline capable':'offline not confirmed')+' • '+(pkg.pwa.umlaCompatible?'UMLA compatible':'UMLA not confirmed')+'</p><p class="helper">This is a preview only. It is not yet registered in the Hub.</p></article>';
+    preview.innerHTML='<article class="programme-card"><p class="eyebrow">'+pkg.category.toUpperCase()+' • '+pkg.status+'</p><h3>'+pkg.programmeName+'</h3><p class="programme-meta">'+pkg.tradeOrField+(pkg.qualification.qualificationId?' • '+pkg.qualification.qualificationId:'')+'</p><p>'+pkg.shortDescription+'</p><p class="helper">Standalone PWA • '+(pkg.pwa.offlineCapable?'offline capable':'offline not confirmed')+' • '+(pkg.pwa.umlaCompatible?'UMLA compatible':'UMLA not confirmed')+'</p><p class="helper">Preview validated. Registration keeps this PWA separate and does not alter the Hub core.</p><button id="registerPackageBtn" class="primary-btn" type="button">Approve and register locally</button></article>';
+    document.getElementById('registerPackageBtn').addEventListener('click',async()=>{
+      const result=await MzansiProgrammePackageManager.register(pkg);
+      if(!result.registered){
+        preview.insertAdjacentHTML('beforeend','<p class="helper"><strong>REGISTRATION BLOCKED:</strong> '+result.errors.join(' ')+'</p>');
+        return;
+      }
+      preview.innerHTML='<article class="programme-card"><p class="eyebrow">REGISTERED LOCALLY</p><h3>'+pkg.programmeName+'</h3><p class="helper">This standalone PWA is now in the local Hub registry. No Hub core code was changed.</p></article>';
+      dispatchEvent(new CustomEvent('mzansi:programmes-changed'));
+    });
   }
 
   form.addEventListener('submit',event=>{
