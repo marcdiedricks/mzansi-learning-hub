@@ -11,9 +11,10 @@ globalThis.MzansiLMSCore = (() => {
   function validateRegistryEntry(entry) {
     const errors = [];
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return { valid: false, errors: ['Programme registry entry must be an object.'] };
-    ['programmeId','name','category','status','pwaUrl','schemaVersion'].forEach(key => {
+    ['programmeId','name','category','status','pwaUrl'].forEach(key => {
       if (!text(entry[key])) errors.push(`${key} is required.`);
     });
+    if (entry.learningRecordsEnabled !== false && !text(entry.schemaVersion)) errors.push('schemaVersion is required when learning records are enabled.');
     if (entry.schemaVersion && entry.schemaVersion !== 'UMLA-LR-0.1') errors.push('Unsupported learning-record schema.');
     if (entry.qualificationId != null && !text(entry.qualificationId)) errors.push('qualificationId must be a non-empty string when supplied.');
     return { valid: errors.length === 0, errors };
