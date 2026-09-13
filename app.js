@@ -366,3 +366,34 @@ if(adapterDiagnosticsBtn){
       <p class="helper">Network used: NO • Authentication attempted: NO • Live sync: NO</p>`;
   });
 }
+
+
+const deploymentModeCards=document.getElementById('deploymentModeCards');
+if(deploymentModeCards && globalThis.MzansiDeploymentModes){
+  deploymentModeCards.innerHTML=Object.values(MzansiDeploymentModes.MODES).map(mode=>`
+    <article class="mode-card">
+      <div class="progress-row"><strong>${escapeHtml(mode.label)}</strong><span>${mode.serverRequired?'SERVER':'NO SERVER'}</span></div>
+      <p class="helper">${escapeHtml(mode.description)}</p>
+      <p class="helper">Local network: ${mode.localNetworkRequired?'REQUIRED':'NOT REQUIRED'} • Internet for core use: ${mode.internetRequiredForCoreUse?'YES':'NO'}</p>
+      <p class="helper">Engines: ${mode.engines.length?mode.engines.join(' + '):'None required'}</p>
+    </article>`).join('');
+}
+
+const kolibriPilotForm=document.getElementById('kolibriPilotForm');
+if(kolibriPilotForm && globalThis.MzansiDeploymentModes){
+  kolibriPilotForm.addEventListener('submit',event=>{
+    event.preventDefault();
+    const data=new FormData(kolibriPilotForm);
+    const check=MzansiDeploymentModes.kolibriPilotReadiness({
+      baseUrl:String(data.get('pilotKolibriBaseUrl')||'').trim(),
+      sameLocalNetwork:data.get('sameLocalNetwork')==='on',
+      realLearnerData:data.get('realLearnerData')==='on'
+    });
+    const box=document.getElementById('kolibriPilotResult');
+    if(check.ready){
+      box.innerHTML='<strong>PILOT READY</strong><p>LOCAL mode prerequisites are satisfied for a synthetic/test-data Kolibri pilot. Paid hosting required: NO • Internet required for the local learning session: NO.</p>';
+    }else{
+      box.innerHTML='<strong>PILOT NOT READY</strong><p>'+check.blockers.map(escapeHtml).join('<br>')+'</p><p class="helper">No connection was attempted and no learner data was moved.</p>';
+    }
+  });
+}

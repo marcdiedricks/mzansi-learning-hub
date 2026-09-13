@@ -9,12 +9,13 @@ globalThis.MzansiOpenSourceBridge = (() => {
       preferredMode: 'LOCAL_NODE',
       costProfile: 'SELF_HOSTED_FREE_SOFTWARE',
       capabilities: Object.freeze({
-        offlineLocalNetwork: true,
+        localNetworkCapable: true,
+        internetRequiredForCoreUse: false,
+        standaloneClientWithoutServer: false,
         learnerAccounts: true,
         coachAdminRoles: true,
         courseContent: true,
-        assessments: true,
-        internetRequiredForCoreUse: false
+        assessments: true
       })
     }),
     MOODLE: Object.freeze({
@@ -24,13 +25,14 @@ globalThis.MzansiOpenSourceBridge = (() => {
       preferredMode: 'INSTITUTIONAL_SERVER',
       costProfile: 'SELF_HOSTED_FREE_SOFTWARE',
       capabilities: Object.freeze({
-        offlineLocalNetwork: false,
+        localNetworkCapable: true,
+        internetRequiredForCoreUse: false,
+        standaloneClientWithoutServer: false,
         learnerAccounts: true,
         coachAdminRoles: true,
         courseContent: true,
         assessments: true,
-        webServices: true,
-        internetRequiredForCoreUse: true
+        webServices: true
       })
     })
   });
