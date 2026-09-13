@@ -39,14 +39,23 @@ globalThis.MzansiProgrammePackageManager = (() => {
 
   function validate(pkg){
     const errors=[];
+    if(!pkg||typeof pkg!=='object'||Array.isArray(pkg)) return {valid:false,errors:['Package must be one JSON object.']};
     if(pkg.packageVersion!=='MLH-PACKAGE-0.1') errors.push('Unsupported package version.');
     ['programmeId','programmeName','shortDescription','category','tradeOrField'].forEach(key=>{if(!text(pkg[key])) errors.push(key+' is required.');});
     if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(pkg.programmeId||'')) errors.push('Programme ID must use simple lowercase words separated by hyphens.');
-    try{
-      const launchUrl=new URL(pkg.pwa.launchUrl);
-      if(!['https:','http:'].includes(launchUrl.protocol)) errors.push('PWA launch URL must use HTTP or HTTPS.');
-    }catch{ errors.push('A valid PWA launch URL is required.'); }
-    if(pkg.qualification.nqfLevel!=null && (!Number.isInteger(pkg.qualification.nqfLevel)||pkg.qualification.nqfLevel<1||pkg.qualification.nqfLevel>10)) errors.push('NQF level must be between 1 and 10.');
+    if(!pkg.pwa||typeof pkg.pwa!=='object'||Array.isArray(pkg.pwa)){
+      errors.push('pwa settings are required.');
+    }else{
+      try{
+        const launchUrl=new URL(pkg.pwa.launchUrl);
+        if(!['https:','http:'].includes(launchUrl.protocol)) errors.push('PWA launch URL must use HTTP or HTTPS.');
+      }catch{ errors.push('A valid PWA launch URL is required.'); }
+    }
+    if(pkg.qualification!=null && (typeof pkg.qualification!=='object'||Array.isArray(pkg.qualification))){
+      errors.push('qualification must be an object when supplied.');
+    }else if(pkg.qualification?.nqfLevel!=null && (!Number.isInteger(pkg.qualification.nqfLevel)||pkg.qualification.nqfLevel<1||pkg.qualification.nqfLevel>10)){
+      errors.push('NQF level must be between 1 and 10.');
+    }
     return {valid:errors.length===0,errors};
   }
 
@@ -182,8 +191,12 @@ globalThis.MzansiProgrammePackageManager = (() => {
     const index=items.findIndex(item=>item.programmeId===originalProgrammeId);
     if(index<0) return {updated:false,errors:['Registered package could not be found.']};
     const existing=items[index];
+    const learningStructure=text(pkg?.learningStructure?.programmeConfig)
+      ? pkg.learningStructure
+      : existing.learningStructure||pkg.learningStructure;
     items[index]={
       ...pkg,
+      learningStructure,
       registration:{
         approved:true,
         approvedAt:existing.registration?.approvedAt||new Date().toISOString(),
