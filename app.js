@@ -72,7 +72,12 @@ async function loadProgrammes(){
   const programmes=document.getElementById('programmeCards');
   const response=await fetch('./programmes.json');
   if(!response.ok) throw new Error('Programme registry unavailable');
-  const data=await response.json();
+  const builtIn=await response.json();
+  const localPackages=globalThis.MzansiProgrammePackageManager
+    ? await MzansiProgrammePackageManager.listRegistered()
+    : [];
+  const localProgrammes=localPackages.map(pkg=>MzansiProgrammePackageManager.toRegistryEntry(pkg));
+  const data=[...builtIn,...localProgrammes];
   programmeRegistry.clear();
   programmeConfigs.clear();
 
@@ -290,6 +295,16 @@ async function init(){
     document.getElementById('programmeCards').innerHTML=message;
   }
 }
+
+globalThis.MzansiLearningHub={
+  hasProgrammeId(programmeId){return programmeRegistry.has(programmeId);},
+  async refreshProgrammes(){
+    await loadProgrammes();
+    await Promise.all([renderProgress(),renderReports(),renderProfile()]);
+  }
+};
+
+addEventListener('mzansi:programmes-changed',()=>MzansiLearningHub.refreshProgrammes().catch(console.error));
 
 if('serviceWorker'in navigator){addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(console.error));}
 init();
