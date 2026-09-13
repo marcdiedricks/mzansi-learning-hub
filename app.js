@@ -22,6 +22,10 @@ function updateNetwork(){
 }
 addEventListener('online',updateNetwork);addEventListener('offline',updateNetwork);updateNetwork();
 
+function escapeHtml(value){
+  return String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+}
+
 function programmeName(programmeId){
   return programmeRegistry.get(programmeId)?.name||programmeId;
 }
@@ -33,13 +37,20 @@ function renderHomeProgrammeSummary(data){
 }
 
 function programmeCard(programme,learning=false){
+  const recordsEnabled=programme.learningRecordsEnabled!==false;
+  const recordLabel=recordsEnabled?(programme.schemaVersion||'UMLA-LR-0.1'):'Standalone only';
+  const integrationText=programmeConfigs.has(programme.programmeId)
+    ?'Validated pathway definition connected.'
+    :recordsEnabled
+      ?'Learning records accepted; programme-level progress withheld until a validated pathway is connected.'
+      :'Standalone PWA registered. UMLA learning-record integration is not enabled.';
   return `<article class="programme-card">
-    <p class="eyebrow">${programme.category.toUpperCase()} • ${programme.status.toUpperCase()}</p>
-    <h3>${programme.name}</h3>
-    <p class="programme-meta">${programme.qualificationId||'No qualification ID'} • ${programme.schemaVersion}</p>
-    <p class="helper">${programmeConfigs.has(programme.programmeId)?'Validated pathway definition connected.':'Learning records accepted; programme-level progress withheld until a validated pathway is connected.'}</p>
-    ${learning?`<button class="secondary-btn" type="button" data-enrol="${programme.programmeId}">Enrol locally</button>`:''}
-    <a class="programme-link" href="${programme.pwaUrl}" target="_blank" rel="noopener noreferrer">Open ${programme.name}</a>
+    <p class="eyebrow">${escapeHtml(programme.category).toUpperCase()} • ${escapeHtml(programme.status).toUpperCase()}</p>
+    <h3>${escapeHtml(programme.name)}</h3>
+    <p class="programme-meta">${escapeHtml(programme.qualificationId||'No qualification ID')} • ${escapeHtml(recordLabel)}</p>
+    <p class="helper">${escapeHtml(integrationText)}</p>
+    ${learning?`<button class="secondary-btn" type="button" data-enrol="${escapeHtml(programme.programmeId)}">Enrol locally</button>`:''}
+    <a class="programme-link" href="${escapeHtml(programme.pwaUrl)}" target="_blank" rel="noopener noreferrer">Open ${escapeHtml(programme.name)}</a>
   </article>`;
 }
 
@@ -93,7 +104,7 @@ async function loadProgrammes(){
   await Promise.all(data.map(loadProgrammeConfig));
   const coreCheck=MzansiLMSCore.configure(data,programmeConfigs);
   if(!coreCheck.valid) throw new Error(coreCheck.errors.join(' '));
-  MzansiUMLAImport.configure(data);
+  MzansiUMLAImport.configure(data.filter(item=>item.learningRecordsEnabled!==false));
   renderHomeProgrammeSummary(data);
   learning.innerHTML=data.map(item=>programmeCard(item,true)).join('');
   programmes.innerHTML=data.map(item=>programmeCard(item,false)).join('');
