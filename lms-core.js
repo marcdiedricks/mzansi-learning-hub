@@ -59,6 +59,19 @@ globalThis.MzansiLMSCore = (() => {
           if (activity.satisfiedBy != null && (!Array.isArray(activity.satisfiedBy) || !activity.satisfiedBy.length || activity.satisfiedBy.some(value => !text(value)))) {
             errors.push(`Activity ${activity.activityId || activityIndex + 1}: satisfiedBy must contain valid outcomes.`);
           }
+          if (activity.completionRule != null) {
+            if (typeof activity.completionRule !== 'object' || Array.isArray(activity.completionRule)) {
+              errors.push(`Activity ${activity.activityId || activityIndex + 1}: completionRule must be an object.`);
+            } else {
+              const rule = activity.completionRule;
+              if (rule.requiredEventTypes != null && (!Array.isArray(rule.requiredEventTypes) || !rule.requiredEventTypes.length || rule.requiredEventTypes.some(value => !text(value)))) {
+                errors.push(`Activity ${activity.activityId || activityIndex + 1}: requiredEventTypes must contain valid event types.`);
+              }
+              if (rule.minimumScorePercent != null && (typeof rule.minimumScorePercent !== 'number' || rule.minimumScorePercent < 0 || rule.minimumScorePercent > 100)) {
+                errors.push(`Activity ${activity.activityId || activityIndex + 1}: minimumScorePercent must be between 0 and 100.`);
+              }
+            }
+          }
         });
       });
     });
