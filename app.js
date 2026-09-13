@@ -148,10 +148,21 @@ function pathwayProgressCard(programmeId,progress){
     if(module.knownSatisfied>0||module.complete) visibleModules.push(module);
   }));
   const next=progress.nextRequired;
+  const nextRule=next?.completionRule;
+  const ruleText=nextRule
+    ? [
+        Array.isArray(nextRule.requiredEventTypes)&&nextRule.requiredEventTypes.length
+          ? 'event '+nextRule.requiredEventTypes.join(' or ')
+          : null,
+        typeof nextRule.minimumScorePercent==='number'
+          ? 'minimum '+nextRule.minimumScorePercent+'%'
+          : null
+      ].filter(Boolean).join(' • ')
+    : '';
   const nextText=next?.blockedReason==='MODULE_DEFINITION_INCOMPLETE'
     ? `Next pathway step is blocked at ${next.moduleId} until its programme definition is complete.`
     : next?.activityId
-      ? `Next required activity: ${next.moduleId} • ${next.activityId}`
+      ? `Next required activity: ${next.moduleId} • ${next.activityId}${ruleText?' • requires '+ruleText:''}`
       : 'No next required activity is currently defined.';
   const headline=progress.percent==null?'Programme progress withheld':`${progress.percent}% programme progress`;
   const bar=progress.percent==null?'':`<div class="progress-track"><div class="progress-fill" style="width:${progress.percent}%"></div></div>`;
