@@ -7,3 +7,5 @@
 #programmePackageFileInput{width:100%;margin:8px 0 4px}.result-card{margin-top:12px;padding:12px;border-radius:12px;background:#f8fafc;border:1px solid #e5e7eb}.result-card:empty{display:none}
 
 .health-box{margin:12px 0;padding:12px;border:1px solid #cbd5e1;border-radius:14px;background:#fff}.health-title{margin:0 0 8px}.health-row{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid #e5e7eb;font-size:.9rem}.health-row:last-of-type{border-bottom:0}.health-ready{border-color:#86efac}.health-ready_with_warnings{border-color:#facc15}.health-blocked{border-color:#fca5a5}.health-blocker{color:#991b1b;font-size:.9rem}
+
+.activation-box{margin:12px 0;padding:12px;border:1px solid #cbd5e1;border-radius:14px;background:#f8fafc}.activation-title{margin:0 0 8px}.activation-pill{display:inline-block;margin:4px 0 10px;padding:6px 10px;border-radius:999px;background:#e5e7eb;font-size:.78rem;font-weight:800;letter-spacing:.04em}.secondary-btn:disabled{opacity:.55;cursor:not-allowed}
