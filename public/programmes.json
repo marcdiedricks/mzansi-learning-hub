@@ -1,0 +1,22 @@
+[
+  {
+    "programmeId": "mzansi-boilermaker",
+    "name": "Mzansi Boilermaker",
+    "category": "Artisan",
+    "qualificationId": "SAQA-123381",
+    "status": "pilot",
+    "pwaUrl": "https://mzansi-boilermaker.netlify.app",
+    "schemaVersion": "UMLA-LR-0.1",
+    "programmeConfig": "./programme-configs/mzansi-boilermaker.json"
+  },
+  {
+    "programmeId": "autotech-companion",
+    "name": "AutoTech Companion",
+    "category": "Artisan",
+    "qualificationId": "SAQA-118733",
+    "status": "pilot",
+    "pwaUrl": "https://autotech-companion.netlify.app",
+    "schemaVersion": "UMLA-LR-0.1",
+    "programmeConfig": "./programme-configs/autotech-companion.json"
+  }
+]

@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "UMLA-PROGRAMME-0.1",
+  "programmeId": "autotech-companion",
+  "programmeName": "AutoTech Companion",
+  "programmeType": "artisan",
+  "qualificationId": "SAQA-118733",
+  "definitionStatus": "PARTIAL",
+  "progressRule": "REQUIRED_ACTIVITIES_SATISFIED",
+  "stages": [
+    {
+      "stageId": "knowledge",
+      "stageName": "Knowledge",
+      "order": 1,
+      "modules": [
+        {
+          "moduleId": "KM-02",
+          "moduleName": "Precision Measurement",
+          "order": 1,
+          "required": true,
+          "definitionComplete": false,
+          "activities": [
+            {
+              "activityId": "AUTOTECH-U02-KC01",
+              "activityName": "Precision Measurement Knowledge Check",
+              "activityType": "knowledge-check",
+              "required": true,
+              "satisfiedBy": ["passed"]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "completionBoundary": {
+    "programmeMaySupportReadiness": true,
+    "programmeMayDeclareOfficialQualification": false,
+    "programmeMayDeclareTradeTestResult": false
+  }
+}

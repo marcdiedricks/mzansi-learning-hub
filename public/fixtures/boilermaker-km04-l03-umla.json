@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "UMLA-LR-0.1",
+  "eventId": "EVT-PILOT-FIXTURE-KM04-L03",
+  "learnerId": "LRN-PILOT-FIXTURE",
+  "programmeId": "mzansi-boilermaker",
+  "qualificationId": "SAQA-123381",
+  "moduleId": "KM-04",
+  "activityId": "KM-04-L03",
+  "activityType": "knowledge-check",
+  "eventType": "assessment.completed",
+  "outcome": "passed",
+  "score": {
+    "raw": 4,
+    "max": 4,
+    "percent": 100
+  },
+  "sourceBuild": "0.1B-KM04R-03",
+  "occurredAt": "2026-09-09T14:22:00.000Z",
+  "createdAt": "2026-09-09T14:22:00.000Z",
+  "syncStatus": "LOCAL_ONLY"
+}
