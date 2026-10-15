@@ -1,0 +1,35 @@
+{
+  "packageVersion": "MLH-PACKAGE-0.1",
+  "programmeId": "",
+  "programmeName": "",
+  "shortDescription": "",
+  "category": "",
+  "tradeOrField": "",
+  "qualification": {
+    "qualificationId": "",
+    "qualificationName": "",
+    "nqfLevel": null,
+    "credits": null
+  },
+  "status": "DRAFT",
+  "ownership": {
+    "organisationName": "",
+    "contactName": "",
+    "contactEmail": ""
+  },
+  "pwa": {
+    "launchUrl": "",
+    "offlineCapable": false,
+    "installable": false,
+    "umlaCompatible": false,
+    "umlaSchemaVersion": ""
+  },
+  "learningStructure": {
+    "definitionStatus": "PARTIAL",
+    "programmeConfig": ""
+  },
+  "registration": {
+    "approved": false,
+    "approvedAt": null
+  }
+}

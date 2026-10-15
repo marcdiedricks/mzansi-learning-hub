@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "UMLA-PROGRAMME-0.1",
+  "programmeId": "test-evidence-pwa",
+  "programmeName": "Test Evidence PWA",
+  "qualificationId": "SAQA-EVIDENCE-001",
+  "definitionStatus": "COMPLETE",
+  "stages": [
+    {
+      "stageId": "stage-1",
+      "stageName": "Evidence Test",
+      "order": 1,
+      "modules": [
+        {
+          "moduleId": "module-1",
+          "moduleName": "Assessment Evidence",
+          "order": 1,
+          "required": true,
+          "definitionComplete": true,
+          "activities": [
+            {
+              "activityId": "assessment-1",
+              "activityName": "Evidence-based assessment",
+              "activityType": "assessment",
+              "required": true,
+              "satisfiedBy": [
+                "passed"
+              ],
+              "completionRule": {
+                "requiredEventTypes": [
+                  "assessment.completed"
+                ],
+                "minimumScorePercent": 80
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

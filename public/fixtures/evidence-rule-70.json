@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "UMLA-LR-0.1",
+  "eventId": "EVIDENCE-70-001",
+  "learnerId": "evidence-test-learner",
+  "programmeId": "test-evidence-pwa",
+  "qualificationId": "SAQA-EVIDENCE-001",
+  "moduleId": "module-1",
+  "activityId": "assessment-1",
+  "activityType": "assessment",
+  "eventType": "assessment.completed",
+  "outcome": "passed",
+  "score": {
+    "raw": 70,
+    "max": 100,
+    "percent": 70
+  },
+  "sourceBuild": "PHASE-0.3D-TEST",
+  "occurredAt": "2026-09-13T20:10:00.000Z",
+  "createdAt": "2026-09-13T20:10:00.000Z",
+  "syncStatus": "LOCAL_ONLY"
+}

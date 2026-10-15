@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1f2937">
+<meta name="description" content="Mzansi Learning Hub — robust offline-first learning management system.">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icons/mzansi-learning-hub-192.png">
+<link rel="stylesheet" href="./styles.css">
+<title>Mzansi Learning Hub</title>
+</head>
+<body>
+<header class="app-header">
+  <div><p class="eyebrow">MZANSI LEARNING HUB</p><h1>My Learning</h1></div>
+  <span id="networkStatus" class="status-pill">CHECKING</span>
+</header>
+<main class="app-main">
+<section class="hero-card">
+  <p class="eyebrow">OFFLINE-FIRST LMS</p>
+  <h2>Your learning programmes in one place.</h2>
+  <p>Programmes connect through validated definitions and UMLA learning records. Core use remains local and cloud-independent.</p>
+</section>
+<nav class="tab-nav" aria-label="Learning Hub sections">
+  <button class="tab active" data-view="homeView">Home</button>
+  <button class="tab" data-view="learningView">My Learning</button>
+  <button class="tab" data-view="programmesView">Programmes</button>
+  <button class="tab" data-view="progressView">Progress</button>
+  <button class="tab" data-view="reportsView">Reports</button>
+  <button class="tab" data-view="profileView">Profile</button>
+  <button class="tab" data-view="packageView">Add Programme</button>
+  <button class="tab" data-view="enginesView">Engines</button>
+</nav>
+<section id="homeView" class="view active">
+  <section class="panel">
+    <p class="eyebrow">PROGRAMME-AGNOSTIC LMS CORE</p>
+    <h2 id="homeProgrammeCount">Connected programmes</h2>
+    <p id="homeProgrammeNames" class="helper">Loading programme registry…</p>
+    <button class="primary-btn" data-open="learningView">Open My Learning</button>
+  </section>
+</section>
+<section id="learningView" class="view">
+  <p class="eyebrow">MY LEARNING</p>
+  <h2>Active programmes</h2>
+  <div id="learningCards" class="card-grid"></div>
+</section>
+<section id="programmesView" class="view">
+  <p class="eyebrow">PROGRAMMES</p>
+  <h2>Available now</h2>
+  <div id="programmeCards" class="card-grid"></div>
+</section>
+<section id="progressView" class="view">
+  <p class="eyebrow">PROGRESS</p>
+  <h2>Verified pathway progress</h2>
+  <section class="panel"><div id="progressSummary"><p class="helper">No imported UMLA record yet.</p></div></section>
+  <section class="panel">
+    <p class="eyebrow">LOCAL HANDOFF</p>
+    <h3>Import UMLA records</h3>
+    <p class="helper">Choose a UMLA-LR-0.1 record or UMLA-HANDOFF-0.1 package. Records are validated before being stored locally.</p>
+    <input id="umlaFileInput" type="file" accept="application/json,.json">
+    <button id="importUmlaBtn" class="primary-btn" type="button">Import learning records</button>
+    <button id="loadFixtureBtn" class="secondary-btn" type="button">Load 7-event pathway test</button>
+    <div id="importResult" class="result-card" aria-live="polite"></div>
+  </section>
+</section>
+<section id="reportsView" class="view">
+  <p class="eyebrow">REPORTS</p>
+  <h2>Derived learning reports</h2>
+  <section class="panel"><div id="reportSummary"><p class="helper">No reportable learning records yet.</p></div></section>
+</section>
+<section id="profileView" class="view">
+  <p class="eyebrow">PROFILE</p>
+  <h2>Local-first learner profile</h2>
+  <section class="panel"><div id="profileSummary"><p class="helper">Loading local learner identity…</p></div></section>
+</section>
+<section id="packageView" class="view">
+  <p class="eyebrow">PROGRAMME PACKAGE MANAGER</p>
+  <h2>Add a standalone PWA</h2>
+  <section class="panel">
+    <p class="helper">Step 1: describe the PWA. Nothing is registered until you approve it later.</p>
+    <form id="programmePackageForm" class="intake-form">
+      <label>Programme name<input name="programmeName" required placeholder="e.g. Mzansi Welder"></label>
+      <label>Programme ID<input name="programmeId" required placeholder="e.g. mzansi-welder"></label>
+      <label>Trade or field<input name="tradeOrField" required placeholder="e.g. Welder"></label>
+      <label>Category<select name="category" required><option value="">Choose category</option><option>Artisan</option><option>Technical</option><option>Occupational</option><option>Other</option></select></label>
+      <label>Short description<textarea name="shortDescription" rows="3" required placeholder="What is this PWA for?"></textarea></label>
+      <label>Qualification ID<input name="qualificationId" placeholder="e.g. SAQA-123456"></label>
+      <label>NQF level<input name="nqfLevel" type="number" min="1" max="10" inputmode="numeric"></label>
+      <label>PWA launch URL<input name="launchUrl" type="url" required placeholder="https://..."></label>
+      <label>Status<select name="status"><option>DRAFT</option><option>PILOT</option><option>ACTIVE</option></select></label>
+      <div class="check-row"><label><input name="offlineCapable" type="checkbox"> Offline capable</label><label><input name="installable" type="checkbox"> Installable PWA</label><label><input name="umlaCompatible" type="checkbox"> UMLA compatible</label></div>
+      <button class="primary-btn" type="submit">Validate and preview</button>
+      <button id="savePackageDraftBtn" class="secondary-btn" type="button">Save draft locally</button>
+    </form>
+  </section>
+  <section class="panel">
+    <p class="eyebrow">IMPORT PACKAGE FILE</p>
+    <h3>Bring in a package from another Hub</h3>
+    <p class="helper">Choose an MLH-PACKAGE-0.1 JSON file. It will be validated and loaded into the form for your review. It will not register automatically.</p>
+    <input id="programmePackageFileInput" type="file" accept="application/json,.json">
+    <button id="importProgrammePackageBtn" class="secondary-btn" type="button">Validate imported package</button>
+    <div id="packageImportResult" class="result-card" aria-live="polite"></div>
+  </section>
+  <section class="panel">
+    <p class="eyebrow">PREVIEW</p>
+    <div id="packagePreview"><p class="helper">Complete the form to preview the standalone programme package.</p></div>
+  </section>
+  <section class="panel">
+    <p class="eyebrow">REGISTERED STANDALONE PWAs</p>
+    <h3>Manage local programme packages</h3>
+    <p class="helper">These packages are stored on this device. Removing one removes only its Hub registration. It does not delete or change the standalone PWA itself.</p>
+    <div id="registeredPackageList"><p class="helper">Loading local packages…</p></div>
+  </section>
+</section>
+<section id="enginesView" class="view">
+  <p class="eyebrow">OPEN-SOURCE ENGINES</p>
+  <h2>Optional local and institutional engines</h2>
+  <section class="panel">
+    <p class="eyebrow">KOLIBRI • LOCAL NODE</p>
+    <h3>Connect an offline learning node</h3>
+    <p class="helper">Kolibri is optional. The Hub continues to work without it. This first adapter stores only the local node address and whether the connection is enabled. No password or API token is stored here.</p>
+    <form id="kolibriEngineForm" class="intake-form">
+      <label>Kolibri local address
+        <input name="kolibriBaseUrl" type="url" placeholder="http://192.168.1.10:8080">
+      </label>
+      <div class="check-row">
+        <label><input name="kolibriEnabled" type="checkbox"> Enable Kolibri local-node connection</label>
+      </div>
+      <button class="primary-btn" type="submit">Save and test local node</button>
+      <button id="clearKolibriProfileBtn" class="secondary-btn" type="button">Clear Kolibri profile</button>
+    </form>
+    <div id="kolibriEngineResult" class="result-card" aria-live="polite"></div>
+  </section>
+  <section class="panel">
+    <p class="eyebrow">MOODLE • INSTITUTIONAL SERVER</p>
+    <h3>Reserved for the next adapter</h3>
+    <p class="helper">Moodle remains optional and is not connected yet. No paid Moodle service or hosted account is required by the Hub.</p>
+  </section>
+  <section class="panel">
+    <p class="eyebrow">DEPLOYMENT MODES</p>
+    <h3>Choose the operating model</h3>
+    <div id="deploymentModeCards" class="mode-grid"></div>
+  </section>
+  <section class="panel">
+    <p class="eyebrow">KOLIBRI PILOT READINESS</p>
+    <h3>Check LOCAL mode prerequisites</h3>
+    <p class="helper">This readiness check does not connect to Kolibri. It confirms whether the minimum low-cost pilot conditions are in place.</p>
+    <form id="kolibriPilotForm" class="intake-form">
+      <label>Real Kolibri local address
+        <input name="pilotKolibriBaseUrl" type="url" placeholder="http://192.168.1.10:8080">
+      </label>
+      <div class="check-row">
+        <label><input name="sameLocalNetwork" type="checkbox"> Phone and Kolibri node are on the same local network</label>
+        <label><input name="realLearnerData" type="checkbox"> I am using genuine learner data</label>
+      </div>
+      <button class="secondary-btn" type="submit">Check pilot readiness</button>
+    </form>
+    <div id="kolibriPilotResult" class="result-card" aria-live="polite"></div>
+  </section>
+  <section class="panel">
+    <p class="eyebrow">ADAPTER DIAGNOSTICS</p>
+    <h3>Verify the universal contract</h3>
+    <p class="helper">This checks the Kolibri and Moodle adapter contracts locally. It does not contact either platform and does not use network data.</p>
+    <button id="runAdapterDiagnosticsBtn" class="secondary-btn" type="button">Run adapter diagnostics</button>
+    <div id="adapterDiagnosticsResult" class="result-card" aria-live="polite"></div>
+  </section>
+</section>
+</main>
+<footer class="app-footer"><span>UMLA-LR-0.1</span><span>Offline-first • validated • derived reporting</span></footer>
+<script src="./hub-storage.js"></script>
+<script src="./umla-import.js"></script>
+<script src="./progress-engine.js"></script>
+<script src="./lms-core.js"></script>
+<script src="./programme-package-manager.js"></script>
+<script src="./open-source-engine-bridge.js"></script>
+<script src="./deployment-modes.js"></script>
+<script src="./adapter-contract.js"></script>
+<script src="./open-source-adapters.js"></script>
+<script src="./kolibri-adapter.js"></script>
+<script src="./app.js"></script>
+</body>
+</html>
